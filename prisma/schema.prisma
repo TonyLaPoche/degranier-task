@@ -1,0 +1,157 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+enum UserRole {
+  ADMIN
+  CLIENT
+}
+
+enum TaskStatus {
+  TODO
+  IN_PROGRESS
+  REVIEW
+  COMPLETED
+}
+
+enum TaskPriority {
+  LOW
+  MEDIUM
+  HIGH
+  URGENT
+}
+
+model User {
+  id        String   @id @default(cuid())
+  email     String   @unique
+  name      String?
+  password  String?
+  role      UserRole @default(CLIENT)
+  image     String?
+  emailVerified DateTime?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relations
+  taskClients TaskClient[]
+  taskHistory TaskHistory[]
+  taskComments TaskComment[]
+  accounts    Account[]
+
+  @@map("users")
+}
+
+model Account {
+  id                String  @id @default(cuid())
+  userId            String
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String?
+  access_token      String?
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String?
+  session_state     String?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+  @@map("accounts")
+}
+
+model Task {
+  id          String       @id @default(cuid())
+  title       String
+  description String?
+  status      TaskStatus   @default(TODO)
+  priority    TaskPriority @default(MEDIUM)
+  dueDate     DateTime?
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+
+  // Relations
+  clients     TaskClient[]
+  history     TaskHistory[]
+  comments    TaskComment[]
+
+  @@map("tasks")
+}
+
+model TaskClient {
+  id        String   @id @default(cuid())
+  taskId    String
+  userId    String
+  createdAt DateTime @default(now())
+
+  // Relations
+  task      Task     @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([taskId, userId])
+  @@map("task_clients")
+}
+
+model TaskHistory {
+  id          String       @id @default(cuid())
+  taskId      String
+  field       String       // Nom du champ modifié (title, description, status, etc.)
+  oldValue    String?      // Valeur précédente
+  newValue    String?      // Nouvelle valeur
+  changedById String       // ID de l'utilisateur qui a fait le changement
+  createdAt   DateTime     @default(now())
+
+  // Relations
+  task        Task         @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  changedBy   User         @relation(fields: [changedById], references: [id], onDelete: Cascade)
+
+  @@map("task_history")
+}
+
+model TaskComment {
+  id          String   @id @default(cuid())
+  taskId      String
+  authorId    String   // ID de l'utilisateur qui écrit le commentaire
+  content     String
+  isFromClient Boolean @default(false) // true si c'est un client, false si c'est l'admin
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  // Relations
+  task        Task     @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  author      User     @relation(fields: [authorId], references: [id], onDelete: Cascade)
+
+  @@map("task_comments")
+}
+
+model SocialMedia {
+  id          String   @id @default(cuid())
+  platform    String   // Facebook, Twitter, Instagram, LinkedIn, etc.
+  url         String
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@map("social_media")
+}
+
+model ContactHours {
+  id          String   @id @default(cuid())
+  dayOfWeek   Int      // 0 = Sunday, 1 = Monday, ..., 6 = Saturday
+  startTime   String   // Format: "HH:MM"
+  endTime     String   // Format: "HH:MM"
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@map("contact_hours")
+}
