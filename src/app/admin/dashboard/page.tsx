@@ -29,6 +29,20 @@ interface TaskComment {
   }
 }
 
+interface Client {
+  id: string
+  name: string | null
+  email: string
+  role: string
+  category?: {
+    id: string
+    name: string
+    color: string
+  } | null
+  projectCount: number
+  createdAt: Date
+}
+
 interface Task {
   id: string
   title: string
@@ -65,7 +79,9 @@ export default function AdminDashboard() {
   const { data: session, status } = useSession()
   const router = useRouter()
   const [tasks, setTasks] = useState<Task[]>([])
+  const [clients, setClients] = useState<Client[]>([])
   const [isLoadingTasks, setIsLoadingTasks] = useState(true)
+  const [isLoadingClients, setIsLoadingClients] = useState(true)
   const [showCreateForm, setShowCreateForm] = useState(false)
   const [selectedTask, setSelectedTask] = useState<Task | null>(null)
 
@@ -76,6 +92,18 @@ export default function AdminDashboard() {
   const [sortBy, setSortBy] = useState<string>("recent")
   const [showFilters, setShowFilters] = useState(false)
 
+  // États pour les statistiques
+  const [stats, setStats] = useState({
+    totalClients: 0,
+    newClientsThisMonth: 0,
+    activeProjects: 0,
+    overdueProjects: 0,
+    completedProjects: 0,
+    completedThisQuarter: 0,
+    urgentProjects: 0,
+    urgentToHandle: 0,
+  })
+
   useEffect(() => {
     if (status === "loading") return
 
@@ -85,7 +113,68 @@ export default function AdminDashboard() {
     }
 
     fetchTasks()
-  }, [session, status, router])
+    fetchClients()
+  }, [session, status, router]) // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Fonction pour calculer les statistiques
+  const calculateStats = (tasksData: Task[], clientsData: Client[]) => {
+    const now = new Date()
+    const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1)
+    const startOfQuarter = new Date(now.getFullYear(), Math.floor(now.getMonth() / 3) * 3, 1)
+
+    // Statistiques clients
+    const totalClients = clientsData.length
+    const newClientsThisMonth = clientsData.filter(client =>
+      new Date(client.createdAt) >= startOfMonth
+    ).length
+
+    // Statistiques projets
+    const activeProjects = tasksData.filter(task => task.status === "IN_PROGRESS").length
+    const overdueProjects = tasksData.filter(task =>
+      task.status !== "COMPLETED" &&
+      task.dueDate &&
+      new Date(task.dueDate) < now
+    ).length
+    const completedProjects = tasksData.filter(task => task.status === "COMPLETED").length
+    const completedThisQuarter = tasksData.filter(task =>
+      task.status === "COMPLETED" &&
+      new Date(task.createdAt) >= startOfQuarter
+    ).length
+    const urgentProjects = tasksData.filter(task => task.priority === "URGENT").length
+    const urgentToHandle = tasksData.filter(task =>
+      task.priority === "URGENT" &&
+      task.status !== "COMPLETED"
+    ).length
+
+    setStats({
+      totalClients,
+      newClientsThisMonth,
+      activeProjects,
+      overdueProjects,
+      completedProjects,
+      completedThisQuarter,
+      urgentProjects,
+      urgentToHandle,
+    })
+  }
+
+  const fetchClients = async () => {
+    try {
+      const response = await fetch("/api/users?role=CLIENT")
+      if (response.ok) {
+        const data = await response.json()
+        setClients(data)
+        // Calculer les stats si on a déjà les tâches
+        if (!isLoadingTasks && tasks.length >= 0) {
+          calculateStats(tasks, data)
+        }
+      }
+    } catch (error) {
+      console.error("Erreur lors de la récupération des clients:", error)
+    } finally {
+      setIsLoadingClients(false)
+    }
+  }
 
   const fetchTasks = async () => {
     try {
@@ -93,12 +182,21 @@ export default function AdminDashboard() {
       if (response.ok) {
         const data = await response.json()
         setTasks(data)
+        // Calculer les stats si on a déjà les clients
+        if (clients.length >= 0) {
+          calculateStats(data, clients)
+        }
       }
     } catch (error) {
       console.error("Erreur lors de la récupération des tâches:", error)
     } finally {
       setIsLoadingTasks(false)
     }
+  }
+
+  // Fonction pour rafraîchir les données après une opération
+  const refreshData = async () => {
+    await Promise.all([fetchTasks(), fetchClients()])
   }
 
   // Fonction de filtrage et tri des tâches
@@ -197,8 +295,10 @@ export default function AdminDashboard() {
                 <Users className="h-4 w-4 text-muted-foreground" />
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-bold">12</div>
-                <p className="text-xs text-muted-foreground">+2 ce mois</p>
+                <div className="text-2xl font-bold">{stats.totalClients}</div>
+                <p className="text-xs text-muted-foreground">
+                  {stats.newClientsThisMonth > 0 ? `+${stats.newClientsThisMonth} ce mois` : 'Aucun nouveau ce mois'}
+                </p>
               </CardContent>
             </Card>
 
@@ -208,8 +308,10 @@ export default function AdminDashboard() {
                 <Clock className="h-4 w-4 text-muted-foreground" />
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-bold">24</div>
-                <p className="text-xs text-muted-foreground">8 en retard</p>
+                <div className="text-2xl font-bold">{stats.activeProjects}</div>
+                <p className="text-xs text-muted-foreground">
+                  {stats.overdueProjects > 0 ? `${stats.overdueProjects} en retard` : 'Aucun en retard'}
+                </p>
               </CardContent>
             </Card>
 
@@ -219,8 +321,10 @@ export default function AdminDashboard() {
                 <CheckSquare className="h-4 w-4 text-muted-foreground" />
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-bold">156</div>
-                <p className="text-xs text-muted-foreground">Ce trimestre</p>
+                <div className="text-2xl font-bold">{stats.completedProjects}</div>
+                <p className="text-xs text-muted-foreground">
+                  {stats.completedThisQuarter} ce trimestre
+                </p>
               </CardContent>
             </Card>
 
@@ -230,8 +334,10 @@ export default function AdminDashboard() {
                 <AlertCircle className="h-4 w-4 text-muted-foreground" />
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-bold">3</div>
-                <p className="text-xs text-muted-foreground">À traiter</p>
+                <div className="text-2xl font-bold">{stats.urgentProjects}</div>
+                <p className="text-xs text-muted-foreground">
+                  {stats.urgentToHandle} à traiter
+                </p>
               </CardContent>
             </Card>
         </div>
@@ -249,14 +355,14 @@ export default function AdminDashboard() {
             {selectedTask ? (
               <TaskDetails
                 task={selectedTask}
-                onUpdate={fetchTasks}
+                onUpdate={refreshData}
                 onClose={() => setSelectedTask(null)}
               />
             ) : showCreateForm ? (
               <CreateTaskForm
                 onSuccess={() => {
                   setShowCreateForm(false)
-                  fetchTasks()
+                  refreshData()
                 }}
                 onCancel={() => setShowCreateForm(false)}
               />
