@@ -17,7 +17,7 @@ export async function PUT(
       )
     }
 
-    const { title, description, status, priority, dueDate, clientIds } = await request.json()
+    const { title, description, status, priority, dueDate, clientIds, allowComments } = await request.json()
     const resolvedParams = await params
     const taskId = resolvedParams.id
 
@@ -126,6 +126,18 @@ export async function PUT(
           changedById: session.user.id,
         })
       }
+    }
+
+    // Gérer les changements de allowComments
+    if (allowComments !== undefined && allowComments !== existingTask.allowComments) {
+      updateData.allowComments = allowComments
+      historyEntries.push({
+        taskId,
+        field: "allowComments",
+        oldValue: existingTask.allowComments.toString(),
+        newValue: allowComments.toString(),
+        changedById: session.user.id,
+      })
     }
 
     // Gérer les changements de clients si clientIds est fourni

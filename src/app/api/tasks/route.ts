@@ -109,7 +109,7 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    const { title, description, status, priority, dueDate, clientIds } = await request.json()
+    const { title, description, status, priority, dueDate, clientIds, allowComments } = await request.json()
 
     // Validation
     if (!title || !clientIds || !Array.isArray(clientIds) || clientIds.length === 0) {
@@ -127,6 +127,7 @@ export async function POST(request: NextRequest) {
         status: status || "TODO",
         priority: priority || "MEDIUM",
         dueDate: dueDate ? new Date(dueDate) : null,
+        allowComments: allowComments !== undefined ? allowComments : true,
       },
     })
 

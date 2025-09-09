@@ -30,23 +30,39 @@ enum TaskPriority {
 }
 
 model User {
-  id        String   @id @default(cuid())
-  email     String   @unique
-  name      String?
-  password  String?
-  role      UserRole @default(CLIENT)
-  image     String?
+  id            String   @id @default(cuid())
+  email         String   @unique
+  name          String?
+  password      String?
+  role          UserRole @default(CLIENT)
+  image         String?
   emailVerified DateTime?
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  categoryId    String?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
 
   // Relations
   taskClients TaskClient[]
   taskHistory TaskHistory[]
   taskComments TaskComment[]
-  accounts    Account[]
+  accounts     Account[]
+  category     ClientCategory? @relation("UserCategory", fields: [categoryId], references: [id])
 
   @@map("users")
+}
+
+model ClientCategory {
+  id          String   @id @default(cuid())
+  name        String   @unique
+  description String?
+  color       String?  // Couleur pour l'affichage
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  // Relations
+  clients User[] @relation("UserCategory")
+
+  @@map("client_categories")
 }
 
 model Account {
@@ -74,9 +90,10 @@ model Task {
   title       String
   description String?
   status      TaskStatus   @default(TODO)
-  priority    TaskPriority @default(MEDIUM)
-  dueDate     DateTime?
-  createdAt   DateTime     @default(now())
+  priority     TaskPriority @default(MEDIUM)
+  dueDate      DateTime?
+  allowComments Boolean      @default(true)
+  createdAt    DateTime     @default(now())
   updatedAt   DateTime     @updatedAt
 
   // Relations
@@ -154,4 +171,29 @@ model ContactHours {
   updatedAt   DateTime @updatedAt
 
   @@map("contact_hours")
+}
+
+model Vacation {
+  id          String   @id @default(cuid())
+  title       String   // Titre de la période de vacances
+  description String?  // Description optionnelle
+  startDate   DateTime // Date de début
+  endDate     DateTime // Date de fin
+  isActive    Boolean  @default(true) // Si la période est active
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@map("vacations")
+}
+
+model ContactInfo {
+  id          String   @id @default(cuid())
+  phone       String?  // Numéro de téléphone principal
+  email       String?  // Email de contact
+  address     String?  // Adresse physique (optionnel)
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@map("contact_info")
 }

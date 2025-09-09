@@ -33,6 +33,7 @@ export default function CreateTaskForm({ onSuccess, onCancel }: CreateTaskFormPr
   const [isLoading, setIsLoading] = useState(false)
   const [isLoadingClients, setIsLoadingClients] = useState(true)
   const [error, setError] = useState("")
+  const [allowComments, setAllowComments] = useState(true)
 
   useEffect(() => {
     // Récupérer la liste des clients
@@ -91,6 +92,7 @@ export default function CreateTaskForm({ onSuccess, onCancel }: CreateTaskFormPr
           priority,
           dueDate: dueDate ? new Date(dueDate).toISOString() : null,
           clientIds: selectedClients,
+          allowComments,
         }),
       })
 
@@ -231,6 +233,26 @@ export default function CreateTaskForm({ onSuccess, onCancel }: CreateTaskFormPr
                 {selectedClients.length} client{selectedClients.length > 1 ? 's' : ''} sélectionné{selectedClients.length > 1 ? 's' : ''}
               </p>
             )}
+          </div>
+
+          <div className="space-y-2">
+            <Label>Permissions</Label>
+            <div className="flex items-center space-x-2">
+              <Checkbox
+                id="allowComments"
+                checked={allowComments}
+                onCheckedChange={(checked) => setAllowComments(checked as boolean)}
+              />
+              <label
+                htmlFor="allowComments"
+                className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 cursor-pointer"
+              >
+                Autoriser les commentaires des clients
+              </label>
+            </div>
+            <p className="text-xs text-muted-foreground">
+              Si activé, les clients pourront laisser des commentaires et répondre aux discussions sur ce projet
+            </p>
           </div>
 
           <div className="flex justify-end space-x-2">

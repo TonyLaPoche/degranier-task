@@ -6,10 +6,28 @@ import { useEffect, useState } from "react"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
+import { Input } from "@/components/ui/input"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { Loader2, Users, CheckSquare, Clock, AlertCircle, Plus, Calendar, User } from "lucide-react"
+import { Loader2, Users, CheckSquare, Clock, AlertCircle, Plus, Calendar, User, Search, Filter, X } from "lucide-react"
 import CreateTaskForm from "@/components/create-task-form"
 import TaskDetails from "@/components/task-details"
+import ClientManagement from "@/components/client-management"
+import SocialMediaManager from "@/components/social-media-manager"
+import ContactHoursManager from "@/components/contact-hours-manager"
+
+interface TaskComment {
+  id: string
+  content: string
+  isFromClient: boolean
+  createdAt: Date
+  author: {
+    id: string
+    name: string | null
+    email: string
+    role: string
+  }
+}
 
 interface Task {
   id: string
@@ -18,6 +36,7 @@ interface Task {
   status: string
   priority: string
   dueDate: Date | null
+  allowComments?: boolean
   createdAt: Date
   updatedAt: Date
   clients: Array<{
@@ -39,6 +58,7 @@ interface Task {
       email: string
     }
   }>
+  comments: TaskComment[]
 }
 
 export default function AdminDashboard() {
@@ -48,6 +68,13 @@ export default function AdminDashboard() {
   const [isLoadingTasks, setIsLoadingTasks] = useState(true)
   const [showCreateForm, setShowCreateForm] = useState(false)
   const [selectedTask, setSelectedTask] = useState<Task | null>(null)
+
+  // États pour les filtres et recherche
+  const [searchTerm, setSearchTerm] = useState("")
+  const [statusFilter, setStatusFilter] = useState<string>("all")
+  const [priorityFilter, setPriorityFilter] = useState<string>("all")
+  const [sortBy, setSortBy] = useState<string>("recent")
+  const [showFilters, setShowFilters] = useState(false)
 
   useEffect(() => {
     if (status === "loading") return
@@ -72,6 +99,63 @@ export default function AdminDashboard() {
     } finally {
       setIsLoadingTasks(false)
     }
+  }
+
+  // Fonction de filtrage et tri des tâches
+  const getFilteredAndSortedTasks = () => {
+    let filteredTasks = [...tasks]
+
+    // Recherche par titre ou nom de client
+    if (searchTerm.trim()) {
+      const searchLower = searchTerm.toLowerCase()
+      filteredTasks = filteredTasks.filter(task => {
+        const titleMatch = task.title.toLowerCase().includes(searchLower)
+        const clientMatch = task.clients.some(client =>
+          client.user.name?.toLowerCase().includes(searchLower) ||
+          client.user.email.toLowerCase().includes(searchLower)
+        )
+        return titleMatch || clientMatch
+      })
+    }
+
+    // Filtre par statut
+    if (statusFilter !== "all") {
+      filteredTasks = filteredTasks.filter(task => task.status === statusFilter)
+    }
+
+    // Filtre par priorité
+    if (priorityFilter !== "all") {
+      filteredTasks = filteredTasks.filter(task => task.priority === priorityFilter)
+    }
+
+    // Tri des tâches
+    filteredTasks.sort((a, b) => {
+      switch (sortBy) {
+        case "recent":
+          return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+        case "oldest":
+          return new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()
+        case "due_date":
+          if (!a.dueDate && !b.dueDate) return 0
+          if (!a.dueDate) return 1
+          if (!b.dueDate) return -1
+          return new Date(a.dueDate).getTime() - new Date(b.dueDate).getTime()
+        case "title":
+          return a.title.localeCompare(b.title)
+        default:
+          return 0
+      }
+    })
+
+    return filteredTasks
+  }
+
+  // Fonction pour réinitialiser tous les filtres
+  const resetFilters = () => {
+    setSearchTerm("")
+    setStatusFilter("all")
+    setPriorityFilter("all")
+    setSortBy("recent")
   }
 
   if (status === "loading") {
@@ -187,11 +271,133 @@ export default function AdminDashboard() {
                 <CardContent>
                   <div className="space-y-4">
                     <div className="flex justify-between items-center">
-                      <h3 className="text-lg font-medium">Projets Récentes</h3>
+                      <h3 className="text-lg font-medium">Gestion des Projets</h3>
                       <Button onClick={() => setShowCreateForm(true)}>
                         <Plus className="mr-2 h-4 w-4" />
                         Nouveau Projet
                       </Button>
+                    </div>
+
+                    {/* Barre de recherche et filtres */}
+                    <div className="space-y-4">
+                      <div className="flex flex-col sm:flex-row gap-4">
+                        {/* Barre de recherche */}
+                        <div className="relative flex-1">
+                          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                          <Input
+                            placeholder="Rechercher par titre ou client..."
+                            value={searchTerm}
+                            onChange={(e) => setSearchTerm(e.target.value)}
+                            className="pl-10"
+                          />
+                          {searchTerm && (
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => setSearchTerm("")}
+                              className="absolute right-1 top-1/2 transform -translate-y-1/2 h-8 w-8 p-0"
+                            >
+                              <X className="h-4 w-4" />
+                            </Button>
+                          )}
+                        </div>
+
+                        {/* Bouton pour afficher/masquer les filtres */}
+                        <Button
+                          variant="outline"
+                          onClick={() => setShowFilters(!showFilters)}
+                          className="flex items-center gap-2"
+                        >
+                          <Filter className="h-4 w-4" />
+                          Filtres
+                          {(statusFilter !== "all" || priorityFilter !== "all" || sortBy !== "recent") && (
+                            <Badge variant="secondary" className="ml-1">
+                              {(statusFilter !== "all" ? 1 : 0) + (priorityFilter !== "all" ? 1 : 0) + (sortBy !== "recent" ? 1 : 0)}
+                            </Badge>
+                          )}
+                        </Button>
+                      </div>
+
+                      {/* Filtres étendus */}
+                      {showFilters && (
+                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 p-4 border rounded-lg bg-muted/30">
+                          {/* Filtre par statut */}
+                          <div className="space-y-2">
+                            <label className="text-sm font-medium">Statut</label>
+                            <Select value={statusFilter} onValueChange={setStatusFilter}>
+                              <SelectTrigger>
+                                <SelectValue placeholder="Tous les statuts" />
+                              </SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value="all">Tous les statuts</SelectItem>
+                                <SelectItem value="TODO">À faire</SelectItem>
+                                <SelectItem value="IN_PROGRESS">En cours</SelectItem>
+                                <SelectItem value="REVIEW">En révision</SelectItem>
+                                <SelectItem value="COMPLETED">Terminé</SelectItem>
+                              </SelectContent>
+                            </Select>
+                          </div>
+
+                          {/* Filtre par priorité */}
+                          <div className="space-y-2">
+                            <label className="text-sm font-medium">Priorité</label>
+                            <Select value={priorityFilter} onValueChange={setPriorityFilter}>
+                              <SelectTrigger>
+                                <SelectValue placeholder="Toutes les priorités" />
+                              </SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value="all">Toutes les priorités</SelectItem>
+                                <SelectItem value="LOW">Basse</SelectItem>
+                                <SelectItem value="MEDIUM">Moyenne</SelectItem>
+                                <SelectItem value="HIGH">Haute</SelectItem>
+                                <SelectItem value="URGENT">Urgente</SelectItem>
+                              </SelectContent>
+                            </Select>
+                          </div>
+
+                          {/* Tri */}
+                          <div className="space-y-2">
+                            <label className="text-sm font-medium">Trier par</label>
+                            <Select value={sortBy} onValueChange={setSortBy}>
+                              <SelectTrigger>
+                                <SelectValue placeholder="Trier par" />
+                              </SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value="recent">Plus récent</SelectItem>
+                                <SelectItem value="oldest">Plus ancien</SelectItem>
+                                <SelectItem value="due_date">Échéance</SelectItem>
+                                <SelectItem value="title">Titre (A-Z)</SelectItem>
+                              </SelectContent>
+                            </Select>
+                          </div>
+
+                          {/* Bouton de réinitialisation */}
+                          <div className="flex items-end">
+                            <Button
+                              variant="outline"
+                              onClick={resetFilters}
+                              className="w-full"
+                            >
+                              Réinitialiser
+                            </Button>
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Compteurs de résultats */}
+                      <div className="flex items-center justify-between text-sm text-muted-foreground">
+                        <span>
+                          {getFilteredAndSortedTasks().length} projet{getFilteredAndSortedTasks().length > 1 ? 's' : ''} trouvé{getFilteredAndSortedTasks().length > 1 ? 's' : ''}
+                          {tasks.length !== getFilteredAndSortedTasks().length && (
+                            <span className="text-muted-foreground"> (sur {tasks.length} au total)</span>
+                          )}
+                        </span>
+                        {(searchTerm || statusFilter !== "all" || priorityFilter !== "all" || sortBy !== "recent") && (
+                          <Button variant="link" onClick={resetFilters} className="p-0 h-auto text-sm">
+                            Effacer tous les filtres
+                          </Button>
+                        )}
+                      </div>
                     </div>
 
                     {isLoadingTasks ? (
@@ -209,7 +415,7 @@ export default function AdminDashboard() {
                       </div>
                     ) : (
                       <div className="space-y-3">
-                        {tasks.map((task) => (
+                        {getFilteredAndSortedTasks().map((task) => (
                           <div
                             key={task.id}
                             className="border rounded-lg p-4 cursor-pointer hover:bg-muted/50 transition-colors"
@@ -315,73 +521,15 @@ export default function AdminDashboard() {
           </TabsContent>
 
           <TabsContent value="clients" className="space-y-6">
-            <Card>
-              <CardHeader>
-                <CardTitle>Gestion des Clients</CardTitle>
-                <CardDescription>
-                  Gérez vos clients et leurs informations
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-4">
-                  <div className="flex justify-between items-center">
-                    <h3 className="text-lg font-medium">Liste des Clients</h3>
-                    <Button>Nouveau Client</Button>
-                  </div>
-
-                  <div className="space-y-3">
-                    {/* Placeholder pour les clients */}
-                    <div className="flex items-center justify-between p-4 border rounded-lg">
-                      <div className="space-y-1">
-                        <p className="font-medium">Marie Dupont</p>
-                        <p className="text-sm text-muted-foreground">marie@example.com</p>
-                      </div>
-                      <Badge>Actif</Badge>
-                    </div>
-
-                    <div className="flex items-center justify-between p-4 border rounded-lg">
-                      <div className="space-y-1">
-                        <p className="font-medium">Jean Martin</p>
-                        <p className="text-sm text-muted-foreground">jean@example.com</p>
-                      </div>
-                      <Badge>Actif</Badge>
-                    </div>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
+            <ClientManagement />
           </TabsContent>
 
           <TabsContent value="social" className="space-y-6">
-            <Card>
-              <CardHeader>
-                <CardTitle>Réseaux Sociaux</CardTitle>
-                <CardDescription>
-                  Gérez vos profils et liens vers les réseaux sociaux
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                <p className="text-muted-foreground">
-                  Section en développement - Configuration des réseaux sociaux à venir
-                </p>
-              </CardContent>
-            </Card>
+            <SocialMediaManager />
           </TabsContent>
 
           <TabsContent value="contact" className="space-y-6">
-            <Card>
-              <CardHeader>
-                <CardTitle>Horaires de Contact</CardTitle>
-                <CardDescription>
-                  Définissez vos horaires de disponibilité téléphonique
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                <p className="text-muted-foreground">
-                  Section en développement - Configuration des horaires à venir
-                </p>
-              </CardContent>
-            </Card>
+            <ContactHoursManager />
           </TabsContent>
         </Tabs>
       </main>

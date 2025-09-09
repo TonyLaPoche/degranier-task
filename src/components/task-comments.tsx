@@ -24,15 +24,16 @@ interface TaskCommentsProps {
   taskId: string
   taskStatus: string
   comments: TaskComment[]
+  allowComments?: boolean
   onCommentAdded?: () => void
 }
 
-export default function TaskComments({ taskId, taskStatus, comments, onCommentAdded }: TaskCommentsProps) {
+export default function TaskComments({ taskId, taskStatus, comments, allowComments = true, onCommentAdded }: TaskCommentsProps) {
   const [newComment, setNewComment] = useState("")
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [error, setError] = useState("")
 
-  const canComment = taskStatus !== "COMPLETED"
+  const canComment = taskStatus !== "COMPLETED" && allowComments
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -154,7 +155,11 @@ export default function TaskComments({ taskId, taskStatus, comments, onCommentAd
         <Card>
           <CardContent className="pt-4">
             <p className="text-sm text-muted-foreground text-center">
-              Les commentaires ne sont plus possibles sur ce projet terminé
+              {taskStatus === "COMPLETED"
+                ? "Les commentaires ne sont plus possibles sur ce projet terminé"
+                : !allowComments
+                ? "Les commentaires ont été désactivés pour ce projet"
+                : "Les commentaires ne sont pas disponibles pour le moment"}
             </p>
           </CardContent>
         </Card>

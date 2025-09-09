@@ -46,6 +46,14 @@ export async function GET(
       )
     }
 
+    // Vérifier que les commentaires sont autorisés pour cette tâche
+    if (!task.allowComments) {
+      return NextResponse.json(
+        { message: "Les commentaires ne sont pas autorisés pour cette tâche" },
+        { status: 403 }
+      )
+    }
+
     const comments = await prisma.taskComment.findMany({
       where: { taskId },
       include: {
@@ -122,6 +130,14 @@ export async function POST(
       return NextResponse.json(
         { message: "Non autorisé" },
         { status: 401 }
+      )
+    }
+
+    // Vérifier que les commentaires sont autorisés pour cette tâche
+    if (!task.allowComments) {
+      return NextResponse.json(
+        { message: "Les commentaires ne sont pas autorisés pour cette tâche" },
+        { status: 403 }
       )
     }
 

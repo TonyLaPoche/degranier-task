@@ -9,8 +9,11 @@ import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Alert, AlertDescription } from "@/components/ui/alert"
-import { Loader2, Calendar, User, History, Edit, Save, X } from "lucide-react"
+import { Checkbox } from "@/components/ui/checkbox"
+import { Loader2, Calendar, User, History, Edit, Save, X, RefreshCw } from "lucide-react"
 import { formatDateForInput, formatDateForDisplay, formatDateTimeForDisplay } from "@/lib/date-utils"
+import TaskComments from "@/components/task-comments"
+import { getAllowComments } from "@/lib/utils"
 
 interface User {
   id: string
@@ -31,6 +34,19 @@ interface TaskHistory {
   changedBy: User
 }
 
+interface TaskComment {
+  id: string
+  content: string
+  isFromClient: boolean
+  createdAt: Date
+  author: {
+    id: string
+    name: string | null
+    email: string
+    role: string
+  }
+}
+
 interface Task {
   id: string
   title: string
@@ -38,10 +54,12 @@ interface Task {
   status: string
   priority: string
   dueDate: Date | null
+  allowComments?: boolean
   createdAt: Date
   updatedAt: Date
   clients: TaskClient[]
   history: TaskHistory[]
+  comments: TaskComment[]
 }
 
 interface TaskDetailsProps {
@@ -54,6 +72,12 @@ export default function TaskDetails({ task, onUpdate, onClose }: TaskDetailsProp
   const [isEditing, setIsEditing] = useState(false)
   const [isSaving, setIsSaving] = useState(false)
   const [error, setError] = useState("")
+  const [refreshComments, setRefreshComments] = useState(0)
+  const [isUpdating, setIsUpdating] = useState(false)
+  const [showUpdateModal, setShowUpdateModal] = useState(false)
+  const [updateNote, setUpdateNote] = useState("")
+  const [updateDescription, setUpdateDescription] = useState("")
+  const [updateStatus, setUpdateStatus] = useState("")
 
   // États pour l'édition
   const [editTitle, setEditTitle] = useState(task.title)
@@ -61,6 +85,7 @@ export default function TaskDetails({ task, onUpdate, onClose }: TaskDetailsProp
   const [editStatus, setEditStatus] = useState(task.status)
   const [editPriority, setEditPriority] = useState(task.priority)
   const [editDueDate, setEditDueDate] = useState(() => formatDateForInput(task.dueDate))
+  const [editAllowComments, setEditAllowComments] = useState(getAllowComments(task))
 
   const handleSave = async () => {
     setIsSaving(true)
@@ -78,6 +103,7 @@ export default function TaskDetails({ task, onUpdate, onClose }: TaskDetailsProp
           status: editStatus,
           priority: editPriority,
           dueDate: editDueDate ? new Date(editDueDate).toISOString() : null,
+          allowComments: editAllowComments,
         }),
       })
 
@@ -101,8 +127,63 @@ export default function TaskDetails({ task, onUpdate, onClose }: TaskDetailsProp
     setEditStatus(task.status)
     setEditPriority(task.priority)
     setEditDueDate(formatDateForInput(task.dueDate))
+    setEditAllowComments(getAllowComments(task))
     setIsEditing(false)
     setError("")
+  }
+
+  const handleCommentAdded = () => {
+    setRefreshComments(prev => prev + 1)
+    onUpdate?.() // Rafraîchir aussi les tâches principales
+  }
+
+  const handleUpdateClick = () => {
+    setUpdateNote("")
+    setUpdateDescription(task.description || "")
+    setUpdateStatus(task.status)
+    setShowUpdateModal(true)
+  }
+
+  const handleUpdateSubmit = async () => {
+    if (!updateNote.trim()) return
+
+    setIsUpdating(true)
+    setError("")
+
+    try {
+      const updates: Record<string, unknown> = {
+        note: updateNote.trim(),
+      }
+
+      // Ajouter les modifications si elles sont différentes
+      if (updateDescription !== (task.description || "")) {
+        updates.description = updateDescription.trim() || null
+      }
+      if (updateStatus !== task.status) {
+        updates.status = updateStatus
+      }
+
+      const response = await fetch(`/api/tasks/${task.id}/update`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(updates),
+      })
+
+      if (response.ok) {
+        setShowUpdateModal(false)
+        setIsUpdating(false)
+        onUpdate?.() // Rafraîchir les données
+      } else {
+        const data = await response.json()
+        setError(data.message || "Erreur lors de la mise à jour")
+      }
+    } catch (error) {
+      setError("Une erreur est survenue")
+    } finally {
+      setIsUpdating(false)
+    }
   }
 
   const getHistoryMessage = (entry: TaskHistory) => {
@@ -123,6 +204,10 @@ export default function TaskDetails({ task, onUpdate, onClose }: TaskDetailsProp
         return `a changé l'échéance de ${oldDate} à ${newDate}`
       case "clients":
         return `a modifié les clients assignés`
+      case "allowComments":
+        return `a ${entry.newValue === "true" ? "activé" : "désactivé"} les commentaires`
+      case "update":
+        return `a fait une mise à jour : ${entry.newValue}`
       default:
         return "a fait une modification"
     }
@@ -168,10 +253,25 @@ export default function TaskDetails({ task, onUpdate, onClose }: TaskDetailsProp
               </>
             ) : (
               <>
+                <Button
+                  onClick={handleUpdateClick}
+                  variant="outline"
+                  size="sm"
+                  disabled={isUpdating}
+                >
+                  {isUpdating ? (
+                    <Loader2 className="h-4 w-4 mr-1 animate-spin" />
+                  ) : (
+                    <RefreshCw className="h-4 w-4 mr-1" />
+                  )}
+                  Mettre à jour
+                </Button>
+
                 <Button onClick={() => setIsEditing(true)} variant="outline" size="sm">
                   <Edit className="h-4 w-4 mr-1" />
                   Modifier
                 </Button>
+
                 {onClose && (
                   <Button onClick={onClose} variant="ghost" size="sm">
                     <X className="h-4 w-4" />
@@ -313,6 +413,34 @@ export default function TaskDetails({ task, onUpdate, onClose }: TaskDetailsProp
                 )
               )}
             </div>
+
+            {/* Permissions */}
+            <div className="space-y-2">
+              {isEditing ? (
+                <>
+                  <Label>Permissions</Label>
+                  <div className="flex items-center space-x-2">
+                    <Checkbox
+                      id="edit-allowComments"
+                      checked={editAllowComments}
+                      onCheckedChange={(checked) => setEditAllowComments(checked as boolean)}
+                    />
+                    <label
+                      htmlFor="edit-allowComments"
+                      className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 cursor-pointer"
+                    >
+                      Autoriser les commentaires des clients
+                    </label>
+                  </div>
+                </>
+              ) : (
+                <div className="flex items-center gap-2">
+                  <span className="text-sm text-muted-foreground">
+                    Commentaires: {getAllowComments(task) ? "Activés" : "Désactivés"}
+                  </span>
+                </div>
+              )}
+            </div>
           </div>
 
           {/* Clients assignés */}
@@ -364,6 +492,109 @@ export default function TaskDetails({ task, onUpdate, onClose }: TaskDetailsProp
             )}
           </div>
         </div>
+
+        {/* Section Commentaires */}
+        <div className="mt-6">
+          <TaskComments
+            taskId={task.id}
+            taskStatus={task.status}
+            comments={task.comments}
+            allowComments={getAllowComments(task)}
+            onCommentAdded={handleCommentAdded}
+          />
+        </div>
+
+        {/* Modal de mise à jour */}
+        {showUpdateModal && (
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+            <div className="bg-white rounded-lg shadow-xl max-w-md w-full mx-4 max-h-[90vh] overflow-y-auto">
+              <div className="p-6">
+                <div className="flex items-center justify-between mb-4">
+                  <h3 className="text-lg font-semibold">Mettre à jour le projet</h3>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => setShowUpdateModal(false)}
+                    className="h-8 w-8 p-0"
+                  >
+                    ✕
+                  </Button>
+                </div>
+
+                <p className="text-sm text-gray-600 mb-4">
+                  Modifiez les informations du projet et ajoutez une note pour l&apos;historique
+                </p>
+
+                <div className="space-y-4">
+                  {/* Description */}
+                  <div className="space-y-2">
+                    <Label htmlFor="update-description">Description</Label>
+                    <Textarea
+                      id="update-description"
+                      placeholder="Description du projet..."
+                      value={updateDescription}
+                      onChange={(e) => setUpdateDescription(e.target.value)}
+                      rows={3}
+                    />
+                  </div>
+
+                  {/* Statut */}
+                  <div className="space-y-2">
+                    <Label>Statut</Label>
+                    <Select value={updateStatus} onValueChange={setUpdateStatus}>
+                      <SelectTrigger>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="TODO">À faire</SelectItem>
+                        <SelectItem value="IN_PROGRESS">En cours</SelectItem>
+                        <SelectItem value="REVIEW">En révision</SelectItem>
+                        <SelectItem value="COMPLETED">Terminée</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  {/* Note obligatoire */}
+                  <div className="space-y-2">
+                    <Label htmlFor="update-note">Note de mise à jour *</Label>
+                    <Textarea
+                      id="update-note"
+                      placeholder="Décrivez brièvement cette mise à jour..."
+                      value={updateNote}
+                      onChange={(e) => setUpdateNote(e.target.value)}
+                      rows={3}
+                      required
+                    />
+                    <p className="text-xs text-gray-500">
+                      Cette note sera ajoutée à l&apos;historique du projet
+                    </p>
+                  </div>
+                </div>
+
+                <div className="flex justify-end space-x-2 mt-6">
+                  <Button
+                    variant="outline"
+                    onClick={() => setShowUpdateModal(false)}
+                    disabled={isUpdating}
+                  >
+                    Annuler
+                  </Button>
+                  <Button
+                    onClick={handleUpdateSubmit}
+                    disabled={isUpdating || !updateNote.trim()}
+                  >
+                    {isUpdating ? (
+                      <Loader2 className="h-4 w-4 mr-1 animate-spin" />
+                    ) : (
+                      <RefreshCw className="h-4 w-4 mr-1" />
+                    )}
+                    Mettre à jour
+                  </Button>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
       </CardContent>
     </Card>
   )
