@@ -225,22 +225,60 @@ export default function ClientProjectCard({ task, onCommentAdded }: ClientProjec
       {isExpanded && (
         <CardContent className="pt-0">
             <div className="space-y-4">
-              {/* Historique récent */}
-              {task.history.length > 0 && (
+              {/* Notes de mise à jour */}
+              {task.history.filter(entry => entry.field === "update").length > 0 && (
+                <div className="space-y-3">
+                  <h5 className="text-sm font-medium flex items-center gap-2">
+                    📝 Notes de mise à jour
+                  </h5>
+                  <div className="space-y-2">
+                    {task.history
+                      .filter(entry => entry.field === "update")
+                      .slice(-3)
+                      .reverse()
+                      .map((entry) => (
+                        <div key={entry.id} className="bg-blue-50 border border-blue-200 rounded-lg p-3">
+                          <div className="flex items-start gap-3">
+                            <div className="flex-1">
+                              <div className="flex items-center gap-2 mb-2">
+                                <span className="text-sm font-medium text-blue-900">
+                                  Mise à jour par {entry.changedBy.name || entry.changedBy.email}
+                                </span>
+                                <span className="text-xs text-blue-600">
+                                  {new Date(entry.createdAt).toLocaleDateString('fr-FR')}
+                                </span>
+                              </div>
+                              <p className="text-sm text-blue-800 leading-relaxed">
+                                {entry.newValue}
+                              </p>
+                            </div>
+                          </div>
+                        </div>
+                      ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Autres activités récentes */}
+              {task.history.filter(entry => entry.field !== "update").length > 0 && (
                 <div className="space-y-2">
                   <h5 className="text-sm font-medium">Activités récentes</h5>
                   <div className="space-y-1">
-                    {task.history.slice(-3).reverse().map((entry) => (
-                      <div key={entry.id} className="text-xs text-muted-foreground bg-muted/50 p-2 rounded">
-                        <span className="font-medium">
-                          {entry.changedBy.name || entry.changedBy.email}
-                        </span>
-                        {" "}a mis à jour{" "}
-                        <span className="font-medium">{entry.field}</span>
-                        {" • "}
-                        {new Date(entry.createdAt).toLocaleDateString('fr-FR')}
-                      </div>
-                    ))}
+                    {task.history
+                      .filter(entry => entry.field !== "update")
+                      .slice(-3)
+                      .reverse()
+                      .map((entry) => (
+                        <div key={entry.id} className="text-xs text-muted-foreground bg-muted/50 p-2 rounded">
+                          <span className="font-medium">
+                            {entry.changedBy.name || entry.changedBy.email}
+                          </span>
+                          {" "}a mis à jour{" "}
+                          <span className="font-medium">{entry.field}</span>
+                          {" • "}
+                          {new Date(entry.createdAt).toLocaleDateString('fr-FR')}
+                        </div>
+                      ))}
                   </div>
                 </div>
               )}

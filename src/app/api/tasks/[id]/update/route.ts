@@ -92,7 +92,54 @@ export async function POST(
       data: historyEntries,
     })
 
-    return NextResponse.json({ message: "Mise à jour enregistrée" })
+    // Récupérer la tâche mise à jour avec tout l'historique
+    const updatedTask = await prisma.task.findUnique({
+      where: { id: taskId },
+      include: {
+        clients: {
+          include: {
+            user: {
+              select: {
+                id: true,
+                name: true,
+                email: true,
+              },
+            },
+          },
+        },
+        history: {
+          include: {
+            changedBy: {
+              select: {
+                id: true,
+                name: true,
+                email: true,
+              },
+            },
+          },
+          orderBy: {
+            createdAt: "desc",
+          },
+        },
+        comments: {
+          include: {
+            author: {
+              select: {
+                id: true,
+                name: true,
+                email: true,
+                role: true,
+              },
+            },
+          },
+          orderBy: {
+            createdAt: "asc",
+          },
+        },
+      },
+    })
+
+    return NextResponse.json(updatedTask)
   } catch (error) {
     console.error("Erreur lors de la mise à jour:", error)
     return NextResponse.json(
