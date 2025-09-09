@@ -1,59 +1,40 @@
+// Script pour vérifier les données admin dans la base de données
 const { PrismaClient } = require('@prisma/client');
 
 const prisma = new PrismaClient();
 
-async function checkDatabase() {
+async function checkAdminUser() {
   try {
-    console.log('�� Vérification de la base de données...');
-    
-    // Vérifier la connexion
-    await prisma.$connect();
-    console.log('✅ Connexion à la base de données réussie');
-    
-    // Compter les utilisateurs
-    const userCount = await prisma.user.count();
-    console.log(`👥 Nombre d'utilisateurs: ${userCount}`);
-    
-    // Lister tous les utilisateurs (sans mot de passe)
-    const users = await prisma.user.findMany({
-      select: {
-        id: true,
-        email: true,
-        name: true,
-        role: true,
-        createdAt: true
-      }
-    });
-    
-    console.log('\n📋 Utilisateurs trouvés:');
-    users.forEach(user => {
-      console.log(`- ${user.email} (${user.role}) - Créé: ${user.createdAt.toISOString()}`);
-    });
-    
-    // Vérifier spécifiquement l'admin
+    console.log('🔍 Vérification de l\'utilisateur admin...');
+
     const admin = await prisma.user.findFirst({
-      where: { email: 'aurore@degranier.fr' },
-      select: {
-        id: true,
-        email: true,
-        name: true,
-        role: true,
-        password: true
+      where: {
+        email: 'aurore@degranier.fr',
+        role: 'ADMIN'
       }
     });
-    
+
     if (admin) {
-      console.log(`\n👤 Admin trouvé: ${admin.email}`);
-      console.log(`🔐 Hash du mot de passe présent: ${admin.password ? 'Oui' : 'Non'}`);
+      console.log('✅ Utilisateur admin trouvé :', {
+        id: admin.id,
+        email: admin.email,
+        name: admin.name,
+        role: admin.role,
+        hasPassword: !!admin.password
+      });
     } else {
-      console.log('\n❌ Admin non trouvé !');
+      console.log('❌ Aucun utilisateur admin trouvé');
     }
-    
+
+    // Vérifier le nombre total d'utilisateurs
+    const userCount = await prisma.user.count();
+    console.log(`📊 Nombre total d'utilisateurs : ${userCount}`);
+
   } catch (error) {
-    console.error('❌ Erreur:', error);
+    console.error('❌ Erreur lors de la vérification :', error);
   } finally {
     await prisma.$disconnect();
   }
 }
 
-checkDatabase();
+checkAdminUser();
