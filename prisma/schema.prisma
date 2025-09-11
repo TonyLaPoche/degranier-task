@@ -6,7 +6,7 @@ generator client {
 }
 
 datasource db {
-  provider = "postgresql"
+  provider = "sqlite"
   url      = env("DATABASE_URL")
 }
 
@@ -100,6 +100,7 @@ model Task {
   clients     TaskClient[]
   history     TaskHistory[]
   comments    TaskComment[]
+  checklists  TaskChecklist[]
 
   @@map("tasks")
 }
@@ -148,6 +149,21 @@ model TaskComment {
   author      User     @relation(fields: [authorId], references: [id], onDelete: Cascade)
 
   @@map("task_comments")
+}
+
+model TaskChecklist {
+  id          String   @id @default(cuid())
+  taskId      String
+  title       String   // Titre de l'élément de la checklist
+  isCompleted Boolean  @default(false) // Si l'élément est coché ou non
+  order       Int      @default(0) // Ordre d'affichage
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  // Relations
+  task        Task     @relation(fields: [taskId], references: [id], onDelete: Cascade)
+
+  @@map("task_checklists")
 }
 
 model SocialMedia {

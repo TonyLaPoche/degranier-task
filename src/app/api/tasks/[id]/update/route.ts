@@ -136,6 +136,11 @@ export async function POST(
             createdAt: "asc",
           },
         },
+        checklists: {
+          orderBy: {
+            order: "asc",
+          },
+        },
       },
     })
 

@@ -82,6 +82,11 @@ export async function GET(request: NextRequest) {
             createdAt: "asc",
           },
         },
+        checklists: {
+          orderBy: {
+            order: "asc",
+          },
+        },
       },
       orderBy: {
         createdAt: "desc",
@@ -109,7 +114,7 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    const { title, description, status, priority, dueDate, clientIds, allowComments } = await request.json()
+    const { title, description, status, priority, dueDate, clientIds, allowComments, checklists } = await request.json()
 
     // Validation
     if (!title || !clientIds || !Array.isArray(clientIds) || clientIds.length === 0) {
@@ -138,6 +143,17 @@ export async function POST(request: NextRequest) {
         userId: clientId,
       })),
     })
+
+    // Créer les checklists si elles sont fournies
+    if (checklists && Array.isArray(checklists) && checklists.length > 0) {
+      await prisma.taskChecklist.createMany({
+        data: checklists.map((item: string, index: number) => ({
+          taskId: task.id,
+          title: item,
+          order: index,
+        })),
+      })
+    }
 
     // Ajouter une entrée d'historique pour la création
     await prisma.taskHistory.create({
@@ -177,6 +193,26 @@ export async function POST(request: NextRequest) {
           },
           orderBy: {
             createdAt: "desc",
+          },
+        },
+        comments: {
+          include: {
+            author: {
+              select: {
+                id: true,
+                name: true,
+                email: true,
+                role: true,
+              },
+            },
+          },
+          orderBy: {
+            createdAt: "asc",
+          },
+        },
+        checklists: {
+          orderBy: {
+            order: "asc",
           },
         },
       },

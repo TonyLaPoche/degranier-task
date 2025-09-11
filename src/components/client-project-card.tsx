@@ -4,7 +4,8 @@ import { useState } from "react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
-import { Clock, Calendar, MessageSquare, ChevronDown, ChevronUp, AlertCircle, CheckCircle, Clock3 } from "lucide-react"
+import { Clock, Calendar, MessageSquare, ChevronDown, ChevronUp, AlertCircle, CheckCircle, Clock3, CheckSquare } from "lucide-react"
+import { Checkbox } from "@/components/ui/checkbox"
 import TaskComments from "@/components/task-comments"
 import { getAllowComments } from "@/lib/utils"
 
@@ -19,6 +20,15 @@ interface TaskComment {
     email: string
     role: string
   }
+}
+
+interface TaskChecklist {
+  id: string
+  title: string
+  isCompleted: boolean
+  order: number
+  createdAt: Date
+  updatedAt: Date
 }
 
 interface Task {
@@ -44,6 +54,7 @@ interface Task {
     }
   }>
   comments: TaskComment[]
+  checklists?: TaskChecklist[]
 }
 
 interface ClientProjectCardProps {
@@ -54,7 +65,6 @@ interface ClientProjectCardProps {
 export default function ClientProjectCard({ task, onCommentAdded }: ClientProjectCardProps) {
   const [isExpanded, setIsExpanded] = useState(false)
   const [showComments, setShowComments] = useState(false)
-
   const getStatusIcon = (status: string) => {
     switch (status) {
       case "TODO":
@@ -255,6 +265,44 @@ export default function ClientProjectCard({ task, onCommentAdded }: ClientProjec
                           </div>
                         </div>
                       ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Checklist */}
+              {task.checklists && task.checklists.length > 0 && (
+                <div className="space-y-3">
+                  <div className="flex items-center gap-2">
+                    <CheckSquare className="h-4 w-4 text-muted-foreground" />
+                    <h5 className="text-sm font-medium">Tâches à réaliser</h5>
+                  </div>
+                  <div className="space-y-2">
+                    {task.checklists
+                      .sort((a, b) => a.order - b.order)
+                      .map((item) => (
+                        <div
+                          key={item.id}
+                          className="flex items-center gap-3 p-3 border rounded-lg hover:bg-muted/30 transition-colors"
+                        >
+                          <Checkbox
+                            checked={item.isCompleted}
+                            disabled={true}
+                            className="mt-0.5 cursor-not-allowed opacity-70"
+                          />
+                          <span
+                            className={`flex-1 text-sm ${
+                              item.isCompleted
+                                ? "line-through text-muted-foreground"
+                                : "text-foreground"
+                            }`}
+                          >
+                            {item.title}
+                          </span>
+                        </div>
+                      ))}
+                  </div>
+                  <div className="text-xs text-muted-foreground">
+                    {task.checklists.filter(item => item.isCompleted).length} / {task.checklists.length} tâches terminées
                   </div>
                 </div>
               )}

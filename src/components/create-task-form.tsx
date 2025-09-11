@@ -9,7 +9,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Checkbox } from "@/components/ui/checkbox"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Alert, AlertDescription } from "@/components/ui/alert"
-import { Loader2, X } from "lucide-react"
+import { Loader2, X, CheckSquare, Plus, Trash2 } from "lucide-react"
 
 interface User {
   id: string
@@ -34,6 +34,10 @@ export default function CreateTaskForm({ onSuccess, onCancel }: CreateTaskFormPr
   const [isLoadingClients, setIsLoadingClients] = useState(true)
   const [error, setError] = useState("")
   const [allowComments, setAllowComments] = useState(true)
+
+  // États pour les checklists
+  const [checklistItems, setChecklistItems] = useState<string[]>([])
+  const [newChecklistItem, setNewChecklistItem] = useState("")
 
   useEffect(() => {
     // Récupérer la liste des clients
@@ -60,6 +64,25 @@ export default function CreateTaskForm({ onSuccess, onCancel }: CreateTaskFormPr
         ? prev.filter(id => id !== clientId)
         : [...prev, clientId]
     )
+  }
+
+  // Fonctions pour gérer les checklists
+  const handleAddChecklistItem = () => {
+    if (newChecklistItem.trim()) {
+      setChecklistItems(prev => [...prev, newChecklistItem.trim()])
+      setNewChecklistItem("")
+    }
+  }
+
+  const handleRemoveChecklistItem = (index: number) => {
+    setChecklistItems(prev => prev.filter((_, i) => i !== index))
+  }
+
+  const handleChecklistKeyPress = (e: React.KeyboardEvent) => {
+    if (e.key === "Enter") {
+      e.preventDefault()
+      handleAddChecklistItem()
+    }
   }
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -93,10 +116,12 @@ export default function CreateTaskForm({ onSuccess, onCancel }: CreateTaskFormPr
           dueDate: dueDate ? new Date(dueDate).toISOString() : null,
           clientIds: selectedClients,
           allowComments,
+          checklists: checklistItems.length > 0 ? checklistItems : undefined,
         }),
       })
 
       if (response.ok) {
+        const taskData = await response.json()
         onSuccess?.()
       } else {
         const data = await response.json()
@@ -253,6 +278,63 @@ export default function CreateTaskForm({ onSuccess, onCancel }: CreateTaskFormPr
             <p className="text-xs text-muted-foreground">
               Si activé, les clients pourront laisser des commentaires et répondre aux discussions sur ce projet
             </p>
+          </div>
+
+          {/* Section Checklist */}
+          <div className="space-y-4">
+            <div className="flex items-center gap-2">
+              <CheckSquare className="h-5 w-5 text-muted-foreground" />
+              <Label>Liste de tâches (optionnel)</Label>
+            </div>
+            <p className="text-xs text-muted-foreground">
+              Ajoutez des éléments à cocher pour organiser le travail sur ce projet
+            </p>
+
+            {/* Ajouter un nouvel élément */}
+            <div className="flex gap-2">
+              <Input
+                placeholder="Nouvelle tâche..."
+                value={newChecklistItem}
+                onChange={(e) => setNewChecklistItem(e.target.value)}
+                onKeyPress={handleChecklistKeyPress}
+                className="flex-1"
+              />
+              <Button
+                type="button"
+                onClick={handleAddChecklistItem}
+                disabled={!newChecklistItem.trim()}
+                size="sm"
+              >
+                <Plus className="h-4 w-4" />
+              </Button>
+            </div>
+
+            {/* Liste des éléments de checklist */}
+            {checklistItems.length > 0 && (
+              <div className="space-y-2">
+                {checklistItems.map((item, index) => (
+                  <div
+                    key={index}
+                    className="flex items-center gap-3 p-3 border rounded-lg bg-muted/30"
+                  >
+                    <CheckSquare className="h-4 w-4 text-muted-foreground flex-shrink-0" />
+                    <span className="flex-1 text-sm">{item}</span>
+                    <Button
+                      type="button"
+                      onClick={() => handleRemoveChecklistItem(index)}
+                      variant="ghost"
+                      size="sm"
+                      className="h-8 w-8 p-0 text-muted-foreground hover:text-destructive"
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </Button>
+                  </div>
+                ))}
+                <p className="text-xs text-muted-foreground">
+                  {checklistItems.length} élément{checklistItems.length > 1 ? 's' : ''} dans la liste
+                </p>
+              </div>
+            )}
           </div>
 
           <div className="flex justify-end space-x-2">

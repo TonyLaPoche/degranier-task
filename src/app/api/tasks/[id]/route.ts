@@ -3,6 +3,106 @@ import { getServerSession } from "next-auth"
 import { authOptions } from "@/lib/auth"
 import { prisma } from "@/lib/db"
 
+export async function GET(
+  request: NextRequest,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  try {
+    const session = await getServerSession(authOptions)
+
+    if (!session) {
+      return NextResponse.json(
+        { message: "Non autorisé" },
+        { status: 401 }
+      )
+    }
+
+    const resolvedParams = await params
+    const taskId = resolvedParams.id
+
+    // Récupérer la tâche avec toutes les relations
+    const task = await prisma.task.findUnique({
+      where: { id: taskId },
+      include: {
+        clients: {
+          include: {
+            user: {
+              select: {
+                id: true,
+                name: true,
+                email: true
+              }
+            }
+          }
+        },
+        history: {
+          include: {
+            changedBy: {
+              select: {
+                id: true,
+                name: true,
+                email: true,
+              },
+            },
+          },
+          orderBy: {
+            createdAt: "desc",
+          },
+        },
+        comments: {
+          include: {
+            author: {
+              select: {
+                id: true,
+                name: true,
+                email: true,
+                role: true,
+              },
+            },
+          },
+          orderBy: {
+            createdAt: "asc",
+          },
+        },
+        checklists: {
+          orderBy: {
+            order: "asc",
+          },
+        },
+      }
+    })
+
+    if (!task) {
+      return NextResponse.json(
+        { message: "Tâche non trouvée" },
+        { status: 404 }
+      )
+    }
+
+    // Vérifier les permissions : admin peut voir toutes les tâches, client ne voit que ses propres tâches
+    if (session.user.role === "CLIENT") {
+      const taskClients = await prisma.taskClient.findMany({
+        where: { taskId, userId: session.user.id }
+      })
+
+      if (taskClients.length === 0) {
+        return NextResponse.json(
+          { message: "Tâche non trouvée" },
+          { status: 404 }
+        )
+      }
+    }
+
+    return NextResponse.json(task)
+  } catch (error) {
+    console.error("Erreur lors de la récupération de la tâche:", error)
+    return NextResponse.json(
+      { message: "Erreur interne du serveur" },
+      { status: 500 }
+    )
+  }
+}
+
 export async function PUT(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
@@ -36,7 +136,27 @@ export async function PUT(
             }
           }
         },
-        history: { take: 1, orderBy: { createdAt: 'desc' } }
+        history: { take: 1, orderBy: { createdAt: 'desc' } },
+        comments: {
+          include: {
+            author: {
+              select: {
+                id: true,
+                name: true,
+                email: true,
+                role: true,
+              },
+            },
+          },
+          orderBy: {
+            createdAt: "asc",
+          },
+        },
+        checklists: {
+          orderBy: {
+            order: "asc",
+          },
+        },
       }
     })
 
@@ -238,6 +358,11 @@ export async function PUT(
             },
             orderBy: {
               createdAt: "asc",
+            },
+          },
+          checklists: {
+            orderBy: {
+              order: "asc",
             },
           },
         },

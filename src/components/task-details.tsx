@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
@@ -10,7 +10,7 @@ import { Textarea } from "@/components/ui/textarea"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { Checkbox } from "@/components/ui/checkbox"
-import { Loader2, Calendar, User, History, Edit, Save, X, RefreshCw } from "lucide-react"
+import { Loader2, Calendar, User, History, Edit, Save, X, RefreshCw, CheckSquare, Plus, Trash2 } from "lucide-react"
 import { formatDateForInput, formatDateForDisplay, formatDateTimeForDisplay } from "@/lib/date-utils"
 import TaskComments from "@/components/task-comments"
 import { getAllowComments } from "@/lib/utils"
@@ -47,6 +47,15 @@ interface TaskComment {
   }
 }
 
+interface TaskChecklist {
+  id: string
+  title: string
+  isCompleted: boolean
+  order: number
+  createdAt: Date
+  updatedAt: Date
+}
+
 interface Task {
   id: string
   title: string
@@ -60,6 +69,7 @@ interface Task {
   clients: TaskClient[]
   history: TaskHistory[]
   comments: TaskComment[]
+  checklists?: TaskChecklist[]
 }
 
 interface TaskDetailsProps {
@@ -78,6 +88,25 @@ export default function TaskDetails({ task, onUpdate, onClose }: TaskDetailsProp
   const [updateNote, setUpdateNote] = useState("")
   const [updateDescription, setUpdateDescription] = useState("")
   const [updateStatus, setUpdateStatus] = useState("")
+
+  // États pour les checklists - synchronisés avec les props
+  const [checklists, setChecklists] = useState<TaskChecklist[]>(task.checklists ?? [])
+  const [newChecklistItem, setNewChecklistItem] = useState("")
+  const [isAddingChecklist, setIsAddingChecklist] = useState(false)
+
+  // Synchroniser les états quand task change
+  useEffect(() => {
+    setChecklists(task.checklists ?? [])
+  }, [task.checklists])
+
+  useEffect(() => {
+    setEditTitle(task.title)
+    setEditDescription(task.description || "")
+    setEditStatus(task.status)
+    setEditPriority(task.priority)
+    setEditDueDate(formatDateForInput(task.dueDate))
+    setEditAllowComments(getAllowComments(task))
+  }, [task])
 
   // États pour l'édition
   const [editTitle, setEditTitle] = useState(task.title)
@@ -135,6 +164,83 @@ export default function TaskDetails({ task, onUpdate, onClose }: TaskDetailsProp
   const handleCommentAdded = () => {
     setRefreshComments(prev => prev + 1)
     onUpdate?.() // Rafraîchir aussi les tâches principales
+  }
+
+  // Fonctions pour gérer les checklists
+  const handleAddChecklistItem = async () => {
+    if (!newChecklistItem.trim()) return
+
+    try {
+      const response = await fetch(`/api/tasks/${task.id}/checklists`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          title: newChecklistItem.trim()
+        }),
+      })
+
+      if (response.ok) {
+        const newItem = await response.json()
+        setChecklists(prev => [...prev, newItem])
+        setNewChecklistItem("")
+        setIsAddingChecklist(false)
+        onUpdate?.()
+      } else {
+        const data = await response.json()
+        setError(data.message || "Erreur lors de l'ajout")
+      }
+    } catch (error) {
+      setError("Une erreur est survenue")
+    }
+  }
+
+  const handleToggleChecklistItem = async (itemId: string, isCompleted: boolean) => {
+    try {
+      const response = await fetch(`/api/tasks/${task.id}/checklists/${itemId}`, {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          isCompleted: !isCompleted
+        }),
+      })
+
+      if (response.ok) {
+        const updatedItem = await response.json()
+        setChecklists(prev =>
+          prev.map(item =>
+            item.id === itemId ? updatedItem : item
+          )
+        )
+        onUpdate?.()
+      } else {
+        const data = await response.json()
+        setError(data.message || "Erreur lors de la mise à jour")
+      }
+    } catch (error) {
+      setError("Une erreur est survenue")
+    }
+  }
+
+  const handleDeleteChecklistItem = async (itemId: string) => {
+    try {
+      const response = await fetch(`/api/tasks/${task.id}/checklists/${itemId}`, {
+        method: "DELETE",
+      })
+
+      if (response.ok) {
+        setChecklists(prev => prev.filter(item => item.id !== itemId))
+        onUpdate?.()
+      } else {
+        const data = await response.json()
+        setError(data.message || "Erreur lors de la suppression")
+      }
+    } catch (error) {
+      setError("Une erreur est survenue")
+    }
   }
 
   const handleUpdateClick = () => {
@@ -458,6 +564,107 @@ export default function TaskDetails({ task, onUpdate, onClose }: TaskDetailsProp
                 ))
               )}
             </div>
+          </div>
+        </div>
+
+        {/* Section Checklist */}
+        <div className="space-y-4">
+          <div className="flex items-center justify-between">
+            <h3 className="text-lg font-medium flex items-center gap-2">
+              <CheckSquare className="h-5 w-5" />
+              Liste de tâches
+            </h3>
+            {!isAddingChecklist && (
+              <Button
+                onClick={() => setIsAddingChecklist(true)}
+                variant="outline"
+                size="sm"
+                className="flex items-center gap-2"
+              >
+                <Plus className="h-4 w-4" />
+                Ajouter
+              </Button>
+            )}
+          </div>
+
+          <div className="space-y-3">
+            {isAddingChecklist && (
+              <div className="flex gap-2 p-3 border rounded-lg bg-muted/30">
+                <Input
+                  placeholder="Nouvelle tâche..."
+                  value={newChecklistItem}
+                  onChange={(e) => setNewChecklistItem(e.target.value)}
+                  onKeyPress={(e) => {
+                    if (e.key === "Enter") {
+                      handleAddChecklistItem()
+                    }
+                  }}
+                  className="flex-1"
+                  autoFocus
+                />
+                <Button onClick={handleAddChecklistItem} size="sm" disabled={!newChecklistItem.trim()}>
+                  <Plus className="h-4 w-4" />
+                </Button>
+                <Button
+                  onClick={() => {
+                    setIsAddingChecklist(false)
+                    setNewChecklistItem("")
+                  }}
+                  variant="outline"
+                  size="sm"
+                >
+                  <X className="h-4 w-4" />
+                </Button>
+              </div>
+            )}
+
+            {checklists.length === 0 && !isAddingChecklist ? (
+              <div className="text-center py-8 text-muted-foreground">
+                <CheckSquare className="h-12 w-12 mx-auto mb-4 opacity-50" />
+                <p className="text-sm">Aucune tâche dans la liste</p>
+                <p className="text-xs mt-1">Ajoutez des éléments à cocher pour organiser votre travail</p>
+              </div>
+            ) : (
+              <div className="space-y-2">
+                {checklists
+                  .sort((a, b) => a.order - b.order)
+                  .map((item) => (
+                    <div
+                      key={item.id}
+                      className="flex items-center gap-3 p-3 border rounded-lg hover:bg-muted/30 transition-colors"
+                    >
+                      <Checkbox
+                        checked={item.isCompleted}
+                        onCheckedChange={() => handleToggleChecklistItem(item.id, item.isCompleted)}
+                        className="mt-0.5"
+                      />
+                      <span
+                        className={`flex-1 text-sm ${
+                          item.isCompleted
+                            ? "line-through text-muted-foreground"
+                            : "text-foreground"
+                        }`}
+                      >
+                        {item.title}
+                      </span>
+                      <Button
+                        onClick={() => handleDeleteChecklistItem(item.id)}
+                        variant="ghost"
+                        size="sm"
+                        className="h-8 w-8 p-0 text-muted-foreground hover:text-destructive"
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  ))}
+              </div>
+            )}
+
+            {checklists.length > 0 && (
+              <div className="text-xs text-muted-foreground mt-4 pt-4 border-t">
+                {checklists.filter(item => item.isCompleted).length} / {checklists.length} tâches terminées
+              </div>
+            )}
           </div>
         </div>
 
