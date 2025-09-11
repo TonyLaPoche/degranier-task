@@ -1,6 +1,4 @@
 import { NextRequest, NextResponse } from "next/server"
-import { getServerSession } from "next-auth"
-import { authOptions } from "@/lib/auth"
 import { PrismaClient } from '@prisma/client'
 import * as bcrypt from 'bcryptjs'
 
@@ -8,28 +6,15 @@ const prisma = new PrismaClient()
 
 export async function GET() {
   return NextResponse.json({
-    message: "Utilisez POST pour initialiser la base de données",
-    example: {
-      method: "POST",
-      url: "/api/seed",
-      note: "Vous devez être connecté en tant qu'admin"
-    }
+    message: "Initialisation de la base de données de production",
+    warning: "Cet endpoint est temporaire et sera supprimé en production",
+    usage: "Visitez cette URL pour initialiser: /api/init/setup"
   })
 }
 
 export async function POST(request: NextRequest) {
   try {
-    // Vérifier la session admin
-    const session = await getServerSession(authOptions)
-
-    if (!session || session.user.role !== "ADMIN") {
-      return NextResponse.json(
-        { message: "Accès non autorisé" },
-        { status: 401 }
-      )
-    }
-
-    console.log('🌱 Initialisation de la base de données de production...')
+    console.log('🚀 Initialisation de la base de données de production...')
 
     // Créer l'utilisateur admin
     const adminHashedPassword = await bcrypt.hash('admin123', 12)
@@ -133,6 +118,7 @@ export async function POST(request: NextRequest) {
     console.log('✅ Base de données de production initialisée avec succès!')
 
     return NextResponse.json({
+      success: true,
       message: 'Base de données initialisée avec succès',
       users: {
         admin: {
@@ -143,13 +129,22 @@ export async function POST(request: NextRequest) {
           { email: 'marie@example.com', password: 'client123' },
           { email: 'jean@example.com', password: 'client123' }
         ]
-      }
+      },
+      next_steps: [
+        'Testez la connexion admin: https://degranier-task.vercel.app/auth/signin',
+        'Email: aurore@degranier.fr',
+        'Password: admin123'
+      ]
     })
 
   } catch (error) {
     console.error('❌ Erreur lors de l\'initialisation:', error)
     return NextResponse.json(
-      { message: "Erreur lors de l'initialisation de la base de données" },
+      {
+        success: false,
+        message: "Erreur lors de l'initialisation de la base de données",
+        error: error instanceof Error ? error.message : 'Unknown error'
+      },
       { status: 500 }
     )
   } finally {
