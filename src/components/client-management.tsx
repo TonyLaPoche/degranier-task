@@ -9,7 +9,7 @@ import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { Loader2, Users, Plus, Edit, Trash2, RefreshCw, User, Calendar } from "lucide-react"
-import { useSession } from "next-auth/react"
+import { useAuth } from "@/hooks/useAuth.tsx"
 
 interface ClientCategory {
   id: string
@@ -30,7 +30,7 @@ interface Client {
 }
 
 export default function ClientManagement() {
-  const { data: session } = useSession()
+  const { user } = useAuth()
   const [clients, setClients] = useState<Client[]>([])
   const [categories, setCategories] = useState<ClientCategory[]>([])
   const [isLoading, setIsLoading] = useState(true)
@@ -66,10 +66,12 @@ export default function ClientManagement() {
   const fetchClients = async () => {
     try {
       setIsLoading(true)
-      const response = await fetch("/api/users?role=CLIENT")
+      const response = await fetch("/api/firebase/users")
       if (response.ok) {
-        const data = await response.json()
-        setClients(data)
+        const allUsers = await response.json()
+        // Filtrer seulement les clients
+        const clientUsers = allUsers.filter((user: any) => user.role === 'CLIENT')
+        setClients(clientUsers)
       } else {
         setError("Erreur lors du chargement des clients")
       }
@@ -102,7 +104,7 @@ export default function ClientManagement() {
     setError("")
 
     try {
-      const response = await fetch("/api/users", {
+      const response = await fetch("/api/firebase/users", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -149,7 +151,7 @@ export default function ClientManagement() {
     setError("")
 
     try {
-      const response = await fetch(`/api/users/${editingClient.id}`, {
+      const response = await fetch(`/api/firebase/users/${editingClient.id}`, {
         method: "PUT",
         headers: {
           "Content-Type": "application/json",
@@ -183,7 +185,7 @@ export default function ClientManagement() {
     }
 
     try {
-      const response = await fetch(`/api/users/${clientId}`, {
+      const response = await fetch(`/api/firebase/users/${clientId}`, {
         method: "DELETE",
       })
 

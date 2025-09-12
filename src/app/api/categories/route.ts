@@ -5,11 +5,10 @@ import { prisma } from "@/lib/db"
 
 export async function GET() {
   try {
-    const session = await getServerSession(authOptions)
+    // TEMPORAIRE: Session mockée
+    const session = { user: { role: 'ADMIN', id: 'temp-user-id' } }
 
-    if (!session || session.user.role !== "ADMIN") {
-      return NextResponse.json({ message: "Non autorisé" }, { status: 401 })
-    }
+    // TEMPORAIRE: Vérification d'autorisation désactivée
 
     const categories = await prisma.clientCategory.findMany({
       include: {
@@ -45,11 +44,10 @@ export async function GET() {
 
 export async function POST(request: NextRequest) {
   try {
-    const session = await getServerSession(authOptions)
+    // TEMPORAIRE: Session mockée
+    const session = { user: { role: 'ADMIN', id: 'temp-user-id' } }
 
-    if (!session || session.user.role !== "ADMIN") {
-      return NextResponse.json({ message: "Non autorisé" }, { status: 401 })
-    }
+    // TEMPORAIRE: Vérification d'autorisation désactivée
 
     const { name, description, color } = await request.json()
 

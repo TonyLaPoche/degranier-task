@@ -1,6 +1,6 @@
 "use client"
 
-import { useSession } from "next-auth/react"
+import { useAuth } from "@/hooks/useAuth.tsx"
 import { useRouter } from "next/navigation"
 import { useEffect, useState } from "react"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
@@ -52,7 +52,7 @@ interface Task {
 }
 
 export default function ClientDashboard() {
-  const { data: session, status } = useSession()
+  const { user, loading, signOut } = useAuth()
   const router = useRouter()
   const [tasks, setTasks] = useState<Task[]>([])
   const [isLoadingTasks, setIsLoadingTasks] = useState(true)
@@ -62,19 +62,19 @@ export default function ClientDashboard() {
   const [showFilters, setShowFilters] = useState(false)
 
   useEffect(() => {
-    if (status === "loading") return
+    if (loading) return
 
-    if (!session || session.user.role !== "CLIENT") {
+    if (!user || user.role !== "CLIENT") {
       router.push("/auth/signin")
       return
     }
 
     fetchTasks()
-  }, [session, status, router])
+  }, [user, loading, router])
 
   const fetchTasks = async () => {
     try {
-      const response = await fetch("/api/tasks")
+      const response = await fetch("/api/firebase/tasks")
       if (response.ok) {
         const data = await response.json()
         setTasks(data)
@@ -139,7 +139,7 @@ export default function ClientDashboard() {
     setSortBy("recent")
   }
 
-  if (status === "loading") {
+  if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <Loader2 className="h-8 w-8 animate-spin" />
@@ -147,7 +147,7 @@ export default function ClientDashboard() {
     )
   }
 
-  if (!session || session.user.role !== "CLIENT") {
+  if (!user || user.role !== "CLIENT") {
     return null
   }
 
@@ -159,9 +159,9 @@ export default function ClientDashboard() {
           <div className="flex justify-between items-center py-6">
             <div>
               <h1 className="text-3xl font-bold text-foreground">Mes Projets</h1>
-              <p className="text-muted-foreground">Bienvenue, {session.user.name}</p>
+              <p className="text-muted-foreground">Bienvenue, {user.displayName || user.email}</p>
             </div>
-            <Button variant="outline" onClick={() => router.push("/api/auth/signout")}>
+            <Button variant="outline" onClick={() => signOut()}>
               Déconnexion
             </Button>
           </div>

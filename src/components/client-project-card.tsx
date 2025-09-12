@@ -209,7 +209,7 @@ export default function ClientProjectCard({ task, onCommentAdded }: ClientProjec
           </div>
 
           <div className="flex items-center gap-2">
-            {task.comments.length > 0 && (
+            {(task.comments?.length || 0) > 0 && (
               <Button
                 variant="ghost"
                 size="sm"
@@ -217,7 +217,7 @@ export default function ClientProjectCard({ task, onCommentAdded }: ClientProjec
                 className="flex items-center gap-1 text-xs"
               >
                 <MessageSquare className="h-3 w-3" />
-                {task.comments.length}
+                {task.comments?.length || 0}
               </Button>
             )}
 
@@ -332,7 +332,7 @@ export default function ClientProjectCard({ task, onCommentAdded }: ClientProjec
               )}
 
               {/* Commentaires récents */}
-              {task.comments.length > 0 && (
+              {(task.comments?.length || 0) > 0 && (
                 <div className="space-y-2">
                   <div className="flex items-center justify-between">
                     <h5 className="text-sm font-medium">Discussion récente</h5>
@@ -346,7 +346,7 @@ export default function ClientProjectCard({ task, onCommentAdded }: ClientProjec
                     </Button>
                   </div>
                   <div className="space-y-2">
-                    {task.comments.slice(-2).map((comment) => (
+                    {task.comments?.slice(-2).map((comment) => (
                       <div key={comment.id} className="text-xs bg-muted/30 p-2 rounded">
                         <div className="flex items-center gap-2 mb-1">
                           <span className="font-medium">
@@ -372,7 +372,7 @@ export default function ClientProjectCard({ task, onCommentAdded }: ClientProjec
                   <TaskComments
                     taskId={task.id}
                     taskStatus={task.status}
-                    comments={task.comments}
+                    comments={task.comments || []}
                     allowComments={getAllowComments(task)}
                     onCommentAdded={onCommentAdded}
                   />

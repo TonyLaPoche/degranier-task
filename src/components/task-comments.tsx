@@ -43,7 +43,7 @@ export default function TaskComments({ taskId, taskStatus, comments, allowCommen
     setError("")
 
     try {
-      const response = await fetch(`/api/tasks/${taskId}/comments`, {
+      const response = await fetch(`/api/firebase/tasks/${taskId}/comments`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",

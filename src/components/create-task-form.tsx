@@ -46,10 +46,12 @@ export default function CreateTaskForm({ onSuccess, onCancel }: CreateTaskFormPr
 
   const fetchClients = async () => {
     try {
-      const response = await fetch("/api/users?role=CLIENT")
+      const response = await fetch("/api/firebase/users")
       if (response.ok) {
-        const data = await response.json()
-        setClients(data)
+        const allUsers = await response.json()
+        // Filtrer seulement les clients
+        const clientUsers = allUsers.filter((user: User & { role: string }) => user.role === 'CLIENT')
+        setClients(clientUsers)
       }
     } catch (error) {
       console.error("Erreur lors de la récupération des clients:", error)
@@ -103,7 +105,7 @@ export default function CreateTaskForm({ onSuccess, onCancel }: CreateTaskFormPr
     }
 
     try {
-      const response = await fetch("/api/tasks", {
+      const response = await fetch("/api/firebase/tasks", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",

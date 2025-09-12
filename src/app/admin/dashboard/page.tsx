@@ -1,6 +1,6 @@
 "use client"
 
-import { useSession } from "next-auth/react"
+import { useAuth } from "@/hooks/useAuth.tsx"
 import { useRouter } from "next/navigation"
 import { useEffect, useState } from "react"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
@@ -9,7 +9,7 @@ import { Badge } from "@/components/ui/badge"
 import { Input } from "@/components/ui/input"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { Loader2, Users, CheckSquare, Clock, AlertCircle, Plus, Calendar, User, Search, Filter, X } from "lucide-react"
+import { Loader2, Users, CheckSquare, Clock, AlertCircle, Plus, Calendar, User, Search, Filter, X, Trash2, Edit } from "lucide-react"
 import CreateTaskForm from "@/components/create-task-form"
 import TaskDetails from "@/components/task-details"
 import ClientManagement from "@/components/client-management"
@@ -76,9 +76,10 @@ interface Task {
 }
 
 export default function AdminDashboard() {
-  const { data: session, status } = useSession()
+  const { user, loading, signOut } = useAuth()
   const router = useRouter()
   const [tasks, setTasks] = useState<Task[]>([])
+
   const [clients, setClients] = useState<Client[]>([])
   const [isLoadingTasks, setIsLoadingTasks] = useState(true)
   const [isLoadingClients, setIsLoadingClients] = useState(true)
@@ -105,16 +106,16 @@ export default function AdminDashboard() {
   })
 
   useEffect(() => {
-    if (status === "loading") return
+    if (loading) return
 
-    if (!session || session.user.role !== "ADMIN") {
+    if (!user || user.role !== "ADMIN") {
       router.push("/auth/signin")
       return
     }
 
     fetchTasks()
     fetchClients()
-  }, [session, status, router]) // eslint-disable-line react-hooks/exhaustive-deps
+  }, [user, loading, router]) // eslint-disable-line react-hooks/exhaustive-deps
 
   // Fonction pour calculer les statistiques
   const calculateStats = (tasksData: Task[], clientsData: Client[]) => {
@@ -160,13 +161,15 @@ export default function AdminDashboard() {
 
   const fetchClients = async () => {
     try {
-      const response = await fetch("/api/users?role=CLIENT")
+      const response = await fetch("/api/firebase/users")
       if (response.ok) {
-        const data = await response.json()
-        setClients(data)
+        const allUsers = await response.json()
+        // Filtrer seulement les clients
+        const clientUsers = allUsers.filter((user: any) => user.role === 'CLIENT')
+        setClients(clientUsers)
         // Calculer les stats si on a déjà les tâches
         if (!isLoadingTasks && tasks.length >= 0) {
-          calculateStats(tasks, data)
+          calculateStats(tasks, clientUsers)
         }
       }
     } catch (error) {
@@ -178,7 +181,7 @@ export default function AdminDashboard() {
 
   const fetchTasks = async () => {
     try {
-      const response = await fetch("/api/tasks")
+      const response = await fetch("/api/firebase/tasks")
       if (response.ok) {
         const data = await response.json()
         setTasks(data)
@@ -208,10 +211,13 @@ export default function AdminDashboard() {
       const searchLower = searchTerm.toLowerCase()
       filteredTasks = filteredTasks.filter(task => {
         const titleMatch = task.title.toLowerCase().includes(searchLower)
-        const clientMatch = task.clients.some(client =>
-          client.user.name?.toLowerCase().includes(searchLower) ||
-          client.user.email.toLowerCase().includes(searchLower)
-        )
+        const clientMatch = task.clientIds?.some(clientId => {
+          const client = clients.find(c => c.id === clientId)
+          return client && (
+            client.name?.toLowerCase().includes(searchLower) ||
+            client.email.toLowerCase().includes(searchLower)
+          )
+        }) || false
         return titleMatch || clientMatch
       })
     }
@@ -256,7 +262,30 @@ export default function AdminDashboard() {
     setSortBy("recent")
   }
 
-  if (status === "loading") {
+  // Fonction pour supprimer une tâche
+  const handleDeleteTask = async (taskId: string, taskTitle: string) => {
+    if (!confirm(`Êtes-vous sûr de vouloir supprimer le projet "${taskTitle}" ?\n\nCette action est irréversible.`)) {
+      return
+    }
+
+    try {
+      const response = await fetch(`/api/firebase/tasks/${taskId}`, {
+        method: "DELETE",
+      })
+
+      if (response.ok) {
+        // Actualiser les données après suppression
+        await Promise.all([fetchTasks(), fetchClients()])
+      } else {
+        alert("Erreur lors de la suppression du projet")
+      }
+    } catch (error) {
+      console.error("Erreur lors de la suppression:", error)
+      alert("Erreur lors de la suppression du projet")
+    }
+  }
+
+  if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <Loader2 className="h-8 w-8 animate-spin" />
@@ -264,8 +293,15 @@ export default function AdminDashboard() {
     )
   }
 
-  if (!session || session.user.role !== "ADMIN") {
-    return null
+  if (!user || user.role !== "ADMIN") {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <div className="text-center">
+          <h2 className="text-xl font-bold mb-2">Accès refusé</h2>
+          <p>Vous devez être administrateur pour accéder à cette page.</p>
+        </div>
+      </div>
+    )
   }
 
   return (
@@ -276,9 +312,9 @@ export default function AdminDashboard() {
           <div className="flex justify-between items-center py-6">
             <div>
               <h1 className="text-3xl font-bold text-foreground">Dashboard Admin</h1>
-              <p className="text-muted-foreground">Bienvenue, {session.user.name}</p>
+              <p className="text-muted-foreground">Bienvenue, {user.displayName || user.email}</p>
             </div>
-            <Button variant="outline" onClick={() => router.push("/api/auth/signout")}>
+            <Button variant="outline" onClick={() => signOut()}>
               Déconnexion
             </Button>
           </div>
@@ -355,6 +391,7 @@ export default function AdminDashboard() {
             {selectedTask ? (
               <TaskDetails
                 task={selectedTask}
+                clients={clients}
                 onUpdate={refreshData}
                 onClose={() => setSelectedTask(null)}
               />
@@ -383,6 +420,7 @@ export default function AdminDashboard() {
                         Nouveau Projet
                       </Button>
                     </div>
+
 
                     {/* Barre de recherche et filtres */}
                     <div className="space-y-4">
@@ -574,26 +612,29 @@ export default function AdminDashboard() {
                                   )}
                                   <div className="flex items-center gap-1">
                                     <User className="h-4 w-4" />
-                                    <span>{task.clients.length} client{task.clients.length > 1 ? 's' : ''}</span>
+                                    <span>{task.clientIds?.length || 0} client{(task.clientIds?.length || 0) > 1 ? 's' : ''}</span>
                                   </div>
                                   <span>Créée le {new Date(task.createdAt).toLocaleDateString('fr-FR')}</span>
                                 </div>
 
-                                {task.clients.length > 0 && (
+                                {(task.clientIds?.length || 0) > 0 && (
                                   <div className="flex flex-wrap gap-1">
-                                    {task.clients.map((client) => (
-                                      <Badge key={client.user.id} variant="outline" className="text-xs">
-                                        {client.user.name || client.user.email}
-                                      </Badge>
-                                    ))}
+                                    {task.clientIds.map((clientId) => {
+                                      const client = clients.find(c => c.id === clientId)
+                                      return (
+                                        <Badge key={clientId} variant="outline" className="text-xs">
+                                          {client ? (client.name || client.email) : 'Client inconnu'}
+                                        </Badge>
+                                      )
+                                    })}
                                   </div>
                                 )}
 
-                                {task.history.length > 0 && (
+                                {task.history?.length > 0 && (
                                   <div className="mt-3 pt-3 border-t">
                                     <h5 className="text-sm font-medium mb-2">Historique récent</h5>
                                     <div className="space-y-1">
-                                      {task.history.slice(0, 3).map((entry) => (
+                                      {task.history?.slice(0, 3).map((entry) => (
                                         <div key={entry.id} className="text-xs text-muted-foreground">
                                           <span className="font-medium">
                                             {entry.changedBy.name || entry.changedBy.email}
@@ -614,11 +655,40 @@ export default function AdminDashboard() {
                                     </div>
                                   </div>
                                 )}
+
+                                {/* Boutons d'actions */}
+                                <div className="flex items-center gap-2 mt-4 pt-3 border-t">
+                                  <Button
+                                    variant="outline"
+                                    size="sm"
+                                    onClick={(e) => {
+                                      e.stopPropagation()
+                                      setSelectedTask(task)
+                                    }}
+                                    className="flex items-center gap-1"
+                                  >
+                                    <Edit className="h-3 w-3" />
+                                    Modifier
+                                  </Button>
+                                  <Button
+                                    variant="destructive"
+                                    size="sm"
+                                    onClick={(e) => {
+                                      e.stopPropagation()
+                                      handleDeleteTask(task.id, task.title)
+                                    }}
+                                    className="flex items-center gap-1"
+                                  >
+                                    <Trash2 className="h-3 w-3" />
+                                    Supprimer
+                                  </Button>
+                                </div>
                               </div>
                             </div>
                           </div>
-                        ))}
+                        ))
                       </div>
+                    )}
                     )}
                   </div>
                 </CardContent>
