@@ -638,7 +638,7 @@ export default function TaskDetails({ task, clients = [], onUpdate, onClose }: T
               </div>
             )}
 
-            {checklists.length === 0 && !isAddingChecklist ? (
+            {(checklists || []).length === 0 && !isAddingChecklist ? (
               <div className="text-center py-8 text-muted-foreground">
                 <CheckSquare className="h-12 w-12 mx-auto mb-4 opacity-50" />
                 <p className="text-sm">Aucune tâche dans la liste</p>
@@ -646,7 +646,7 @@ export default function TaskDetails({ task, clients = [], onUpdate, onClose }: T
               </div>
             ) : (
               <div className="space-y-2">
-                {checklists
+                {(checklists || [])
                   .sort((a, b) => a.order - b.order)
                   .map((item) => (
                     <div
@@ -683,9 +683,9 @@ export default function TaskDetails({ task, clients = [], onUpdate, onClose }: T
               </div>
             )}
 
-            {checklists.length > 0 && (
+            {(checklists || []).length > 0 && (
               <div className="text-xs text-muted-foreground mt-4 pt-4 border-t">
-                {checklists.filter(item => item.isCompleted || false).length} / {checklists.length} tâches terminées
+                {(checklists || []).filter(item => item.isCompleted || false).length} / {(checklists || []).length} tâches terminées
               </div>
             )}
           </div>

@@ -236,13 +236,13 @@ export default function ClientProjectCard({ task, onCommentAdded }: ClientProjec
         <CardContent className="pt-0">
             <div className="space-y-4">
               {/* Notes de mise à jour */}
-              {task.history.filter(entry => entry.field === "update").length > 0 && (
+              {(task.history || []).filter(entry => entry.field === "update").length > 0 && (
                 <div className="space-y-3">
                   <h5 className="text-sm font-medium flex items-center gap-2">
                     📝 Notes de mise à jour
                   </h5>
                   <div className="space-y-2">
-                    {task.history
+                    {(task.history || [])
                       .filter(entry => entry.field === "update")
                       .slice(-3)
                       .reverse()
@@ -302,17 +302,17 @@ export default function ClientProjectCard({ task, onCommentAdded }: ClientProjec
                       ))}
                   </div>
                   <div className="text-xs text-muted-foreground">
-                    {task.checklists.filter(item => item.isCompleted || false).length} / {task.checklists.length} tâches terminées
+                    {(task.checklists || []).filter(item => item.isCompleted || false).length} / {(task.checklists || []).length} tâches terminées
                   </div>
                 </div>
               )}
 
               {/* Autres activités récentes */}
-              {task.history.filter(entry => entry.field !== "update").length > 0 && (
+              {(task.history || []).filter(entry => entry.field !== "update").length > 0 && (
                 <div className="space-y-2">
                   <h5 className="text-sm font-medium">Activités récentes</h5>
                   <div className="space-y-1">
-                    {task.history
+                    {(task.history || [])
                       .filter(entry => entry.field !== "update")
                       .slice(-3)
                       .reverse()
