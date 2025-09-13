@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { Button } from "@/components/ui/button"
 import { Textarea } from "@/components/ui/textarea"
 import { Card, CardContent } from "@/components/ui/card"
@@ -23,17 +23,44 @@ interface TaskComment {
 interface TaskCommentsProps {
   taskId: string
   taskStatus: string
-  comments: TaskComment[]
+  comments?: TaskComment[] // Optionnel maintenant
   allowComments?: boolean
   onCommentAdded?: () => void
 }
 
-export default function TaskComments({ taskId, taskStatus, comments, allowComments = true, onCommentAdded }: TaskCommentsProps) {
+export default function TaskComments({ taskId, taskStatus, comments: initialComments = [], allowComments = true, onCommentAdded }: TaskCommentsProps) {
+  const [comments, setComments] = useState<TaskComment[]>(initialComments)
   const [newComment, setNewComment] = useState("")
   const [isSubmitting, setIsSubmitting] = useState(false)
+  const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState("")
 
   const canComment = taskStatus !== "COMPLETED" && allowComments
+
+  // Fonction pour récupérer les commentaires
+  const fetchComments = async () => {
+    setIsLoading(true)
+    try {
+      const response = await fetch(`/api/firebase/tasks/${taskId}/comments`)
+      if (response.ok) {
+        const fetchedComments = await response.json()
+        setComments(fetchedComments)
+      }
+    } catch (error) {
+      console.error('Erreur lors de la récupération des commentaires:', error)
+    } finally {
+      setIsLoading(false)
+    }
+  }
+
+  // Récupérer les commentaires au montage et quand initialComments change
+  useEffect(() => {
+    if (initialComments.length > 0) {
+      setComments(initialComments)
+    } else {
+      fetchComments()
+    }
+  }, [taskId, initialComments])
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -55,6 +82,8 @@ export default function TaskComments({ taskId, taskStatus, comments, allowCommen
 
       if (response.ok) {
         setNewComment("")
+        // Rafraîchir les commentaires immédiatement
+        await fetchComments()
         onCommentAdded?.()
       } else {
         const data = await response.json()
@@ -83,7 +112,12 @@ export default function TaskComments({ taskId, taskStatus, comments, allowCommen
 
       {/* Liste des commentaires */}
       <div className="space-y-3 max-h-80 overflow-y-auto">
-        {comments.length === 0 ? (
+        {isLoading && comments.length === 0 ? (
+          <div className="flex items-center justify-center py-4">
+            <Loader2 className="h-5 w-5 animate-spin mr-2" />
+            <span className="text-sm text-muted-foreground">Chargement des commentaires...</span>
+          </div>
+        ) : comments.length === 0 ? (
           <p className="text-sm text-muted-foreground text-center py-4">
             Aucun commentaire pour le moment
           </p>

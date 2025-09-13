@@ -133,7 +133,7 @@ export default function TaskListSection({
                 <div className="mt-3 pt-3 border-t">
                   <h5 className="text-sm font-medium mb-2">Historique récent</h5>
                   <div className="space-y-1">
-                    {task.history?.slice(0, 3).map((entry: { id: string; field: string; oldValue: string | null; newValue: string | null; timestamp: string; userId: string; changedBy?: { name?: string; email?: string } }) => (
+                    {task.history?.slice(0, 3).map((entry: { id: string; field: string; oldValue: string | null; newValue: string | null; createdAt: string | Date; changedBy?: { name?: string; email?: string } }) => (
                       <div key={entry.id} className="text-xs text-muted-foreground">
                         <span className="font-medium">
                           {entry.changedBy?.name || entry.changedBy?.email || 'Utilisateur inconnu'}
@@ -144,10 +144,11 @@ export default function TaskListSection({
                          entry.field === "description" ? "a modifié la description" :
                          entry.field === "status" ? `a changé le statut à ${entry.newValue}` :
                          entry.field === "priority" ? `a changé la priorité à ${entry.newValue}` :
+                         entry.field === "update" ? `a fait une mise à jour : ${entry.newValue}` :
                          "a fait une modification"}
                         {" "}
                         <span className="text-xs">
-                          {new Date(entry.timestamp).toLocaleString('fr-FR')}
+                          {entry.createdAt ? new Date(entry.createdAt).toLocaleString('fr-FR') : 'Date inconnue'}
                         </span>
                       </div>
                     ))}
