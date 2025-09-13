@@ -69,12 +69,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   }
 
-  // Inscription
+  // Inscription (tous les nouveaux comptes sont des clients)
   const signUp = async (
     email: string,
     password: string,
-    name: string,
-    role: 'ADMIN' | 'CLIENT' = 'CLIENT'
+    name: string
   ) => {
     try {
       const userCredential = await createUserWithEmailAndPassword(auth, email, password)
@@ -84,11 +83,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         displayName: name
       })
 
-      // Créer le document utilisateur dans Firestore
+      // Créer le document utilisateur dans Firestore (toujours CLIENT)
       await setDoc(doc(db, 'users', userCredential.user.uid), {
         email,
         name,
-        role,
+        role: 'CLIENT', // Forcé à CLIENT pour sécurité
         createdAt: Timestamp.now(),
         updatedAt: Timestamp.now()
       })

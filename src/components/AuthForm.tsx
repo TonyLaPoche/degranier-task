@@ -19,7 +19,6 @@ export default function AuthForm({ defaultMode = 'signin' }: AuthFormProps) {
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [name, setName] = useState('')
-  const [role, setRole] = useState<'ADMIN' | 'CLIENT'>('CLIENT')
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
 
@@ -30,7 +29,7 @@ export default function AuthForm({ defaultMode = 'signin' }: AuthFormProps) {
 
     try {
       if (isSignUp) {
-        await signUp(email, password, name, role)
+        await signUp(email, password, name)
       } else {
         await signIn(email, password)
       }
@@ -119,20 +118,6 @@ export default function AuthForm({ defaultMode = 'signin' }: AuthFormProps) {
               />
             </div>
 
-            {isSignUp && (
-              <div>
-                <Label htmlFor="role">Rôle</Label>
-                <select
-                  id="role"
-                  value={role}
-                  onChange={(e) => setRole(e.target.value as 'ADMIN' | 'CLIENT')}
-                  className="w-full p-2 border rounded"
-                >
-                  <option value="CLIENT">Client</option>
-                  <option value="ADMIN">Administrateur</option>
-                </select>
-              </div>
-            )}
 
             <Button type="submit" className="w-full" disabled={loading}>
               {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
