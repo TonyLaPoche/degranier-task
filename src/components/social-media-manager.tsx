@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -75,7 +75,7 @@ export default function SocialMediaManager() {
 
   const fetchSocialMedia = async () => {
     try {
-      const response = await fetch("/api/social-media")
+      const response = await fetch("/api/firebase/social-media")
       if (response.ok) {
         const data = await response.json()
         setSocialMedia(data)
@@ -105,7 +105,7 @@ export default function SocialMediaManager() {
     setError("")
 
     try {
-      const response = await fetch("/api/social-media", {
+      const response = await fetch("/api/firebase/social-media", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -148,7 +148,7 @@ export default function SocialMediaManager() {
     setError("")
 
     try {
-      const response = await fetch(`/api/social-media/${editingSocial.id}`, {
+      const response = await fetch(`/api/firebase/social-media/${editingSocial.id}`, {
         method: "PUT",
         headers: {
           "Content-Type": "application/json",
@@ -178,7 +178,7 @@ export default function SocialMediaManager() {
     }
 
     try {
-      const response = await fetch(`/api/social-media/${socialId}`, {
+      const response = await fetch(`/api/firebase/social-media/${socialId}`, {
         method: "DELETE",
       })
 

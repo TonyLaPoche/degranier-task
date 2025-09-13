@@ -1,6 +1,6 @@
 'use client'
 
-import { useAuth } from '@/hooks/useAuth.tsx'
+import { useAuth } from '@/hooks/useAuth'
 import { useFirebaseAuth } from '@/hooks/useFirebaseAuth'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
@@ -60,14 +60,14 @@ export default function FirebaseTest() {
           <div className="space-y-3 p-4 bg-blue-50 rounded-lg">
             <h3 className="font-semibold text-blue-800">🔐 Connexion requise</h3>
             <p className="text-sm text-blue-600">
-              Testez le nouveau système d'authentification Firebase
+              Testez le nouveau système d&apos;authentification Firebase
             </p>
             <div className="flex gap-2">
               <Button asChild size="sm">
                 <a href="/auth/signin">Se connecter</a>
               </Button>
               <Button asChild variant="outline" size="sm">
-                <a href="/auth/signup">S'inscrire</a>
+                <a href="/auth/signup">S&apos;inscrire</a>
               </Button>
             </div>
           </div>

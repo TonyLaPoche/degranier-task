@@ -9,8 +9,7 @@ import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { Loader2, Users, Plus, Edit, Trash2, RefreshCw, User, Calendar } from "lucide-react"
-import { useAuth } from "@/hooks/useAuth.tsx"
-
+import { useAuth } from "@/hooks/useAuth"
 interface ClientCategory {
   id: string
   name: string
@@ -70,7 +69,7 @@ export default function ClientManagement() {
       if (response.ok) {
         const allUsers = await response.json()
         // Filtrer seulement les clients
-        const clientUsers = allUsers.filter((user: any) => user.role === 'CLIENT')
+        const clientUsers = allUsers.filter((user: { role?: string }) => user.role === 'CLIENT')
         setClients(clientUsers)
       } else {
         setError("Erreur lors du chargement des clients")
@@ -84,7 +83,7 @@ export default function ClientManagement() {
 
   const fetchCategories = async () => {
     try {
-      const response = await fetch("/api/categories")
+      const response = await fetch("/api/firebase/categories")
       if (response.ok) {
         const data = await response.json()
         setCategories(data)
@@ -210,7 +209,7 @@ export default function ClientManagement() {
     setError("")
 
     try {
-      const response = await fetch("/api/categories", {
+      const response = await fetch("/api/firebase/categories", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -257,7 +256,7 @@ export default function ClientManagement() {
     setError("")
 
     try {
-      const response = await fetch(`/api/categories/${editingCategory.id}`, {
+      const response = await fetch(`/api/firebase/categories/${editingCategory.id}`, {
         method: "PUT",
         headers: {
           "Content-Type": "application/json",
@@ -296,7 +295,7 @@ export default function ClientManagement() {
     }
 
     try {
-      const response = await fetch(`/api/categories/${categoryId}`, {
+      const response = await fetch(`/api/firebase/categories/${categoryId}`, {
         method: "DELETE",
       })
 

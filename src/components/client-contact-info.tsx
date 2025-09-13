@@ -78,7 +78,6 @@ export default function ClientContactInfo() {
   const [socialMedia, setSocialMedia] = useState<SocialMedia[]>([])
   const [isLoadingHours, setIsLoadingHours] = useState(true)
   const [isLoadingContact, setIsLoadingContact] = useState(true)
-  const [isLoadingVacations, setIsLoadingVacations] = useState(true)
   const [isLoadingSocial, setIsLoadingSocial] = useState(true)
 
   useEffect(() => {
@@ -90,7 +89,7 @@ export default function ClientContactInfo() {
 
   const fetchContactInfo = async () => {
     try {
-      const response = await fetch("/api/contact-info")
+      const response = await fetch("/api/firebase/contact-info")
       if (response.ok) {
         const data = await response.json()
         setContactInfo(data)
@@ -104,7 +103,7 @@ export default function ClientContactInfo() {
 
   const fetchContactHours = async () => {
     try {
-      const response = await fetch("/api/contact-hours")
+      const response = await fetch("/api/firebase/contact-hours")
       if (response.ok) {
         const data = await response.json()
         setContactHours(data)
@@ -118,7 +117,7 @@ export default function ClientContactInfo() {
 
   const fetchVacations = async () => {
     try {
-      const response = await fetch("/api/vacations")
+      const response = await fetch("/api/firebase/vacations")
       if (response.ok) {
         const data = await response.json()
         setVacations(data)
@@ -126,13 +125,12 @@ export default function ClientContactInfo() {
     } catch (error) {
       console.error("Erreur lors de la récupération des vacances:", error)
     } finally {
-      setIsLoadingVacations(false)
     }
   }
 
   const fetchSocialMedia = async () => {
     try {
-      const response = await fetch("/api/social-media")
+      const response = await fetch("/api/firebase/social-media")
       if (response.ok) {
         const data = await response.json()
         setSocialMedia(data.filter((social: SocialMedia) => social.isActive))
@@ -159,11 +157,6 @@ export default function ClientContactInfo() {
     return now >= start && now <= end && vacation.isActive
   }
 
-  const isVacationUpcoming = (vacation: Vacation) => {
-    const now = new Date()
-    const start = new Date(vacation.startDate)
-    return start > now && vacation.isActive
-  }
 
   const getPlatformIcon = (platform: string) => {
     const IconComponent = PLATFORM_ICONS[platform as keyof typeof PLATFORM_ICONS] || PLATFORM_ICONS.Default

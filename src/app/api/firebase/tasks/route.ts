@@ -4,9 +4,14 @@ import { taskService } from "@/services/firebaseServices"
 // Route Firebase pour les tâches
 export async function GET(request: NextRequest) {
   try {
-    // Pour l'instant, on récupère toutes les tâches
+    // Récupérer les paramètres de requête pour le filtrage
+    const { searchParams } = new URL(request.url)
+    const userRole = searchParams.get('role')
+    const userId = searchParams.get('userId')
+
+    // Pour l'instant, on récupère toutes les tâches (filtrage côté service si nécessaire)
     // TODO: Ajouter l'authentification Firebase
-    const tasks = await taskService.getTasks()
+    const tasks = await taskService.getTasks(userRole || undefined, userId || undefined)
 
     return NextResponse.json(tasks)
   } catch (error) {

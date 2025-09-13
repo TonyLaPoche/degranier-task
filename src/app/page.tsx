@@ -34,7 +34,7 @@ export default function Home() {
                 <h3 className="font-semibold text-blue-600">🔄 À faire</h3>
                 <ul className="text-sm space-y-1">
                   <li>✅ Configurer Firebase Console</li>
-                  <li>• Migrer l'authentification</li>
+                  <li>• Migrer l&apos;authentification</li>
                   <li>• Migrer la base de données</li>
                   <li>• Tester les fonctionnalités</li>
                 </ul>

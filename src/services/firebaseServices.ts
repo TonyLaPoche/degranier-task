@@ -10,7 +10,6 @@ import {
   where,
   orderBy,
   Timestamp,
-  writeBatch
 } from 'firebase/firestore'
 import { db } from '@/lib/firebase'
 
@@ -54,20 +53,26 @@ export class FirebaseUserService {
   async getUsers(role?: 'ADMIN' | 'CLIENT'): Promise<FirebaseUser[]> {
     try {
       let q = collection(db, this.collectionName)
-
       if (role) {
-        q = query(q, where('role', '==', role))
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        q = query(q, where('role', '==', role)) as any
       }
 
-      q = query(q, orderBy('createdAt', 'desc'))
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      q = query(q, orderBy('createdAt', 'desc')) as any
 
       const snapshot = await getDocs(q)
-      return snapshot.docs.map(doc => ({
-        id: doc.id,
-        ...doc.data(),
-        createdAt: doc.data().createdAt?.toDate() || new Date(),
-        updatedAt: doc.data().updatedAt?.toDate() || new Date(),
-      })) as FirebaseUser[]
+      return snapshot.docs.map(doc => {
+        const data = doc.data()
+        return {
+          id: doc.id,
+          email: data.email,
+          name: data.name,
+          role: data.role,
+          createdAt: data.createdAt?.toDate() || new Date(),
+          updatedAt: data.updatedAt?.toDate() || new Date(),
+        } as FirebaseUser
+      })
     } catch (error) {
       console.error('Erreur lors de la récupération des utilisateurs:', error)
       throw error
@@ -134,24 +139,33 @@ export class FirebaseTaskService {
 
   async getTasks(userRole?: string, userId?: string): Promise<FirebaseTask[]> {
     try {
-      let q = collection(db, this.collectionName)
-
+      let q = collection(db, this.collectionName) 
       // Filtrage selon le rôle
       if (userRole === 'CLIENT' && userId) {
-        q = query(q, where('clientIds', 'array-contains', userId))
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        q = query(q, where('clientIds', 'array-contains', userId)) as any
       }
 
-      q = query(q, orderBy('createdAt', 'desc'))
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      q = query(q, orderBy('createdAt', 'desc')) as any
 
       const snapshot = await getDocs(q)
-      return snapshot.docs.map(doc => ({
-        id: doc.id,
-        ...doc.data(),
-        createdAt: doc.data().createdAt?.toDate() || new Date(),
-        updatedAt: doc.data().updatedAt?.toDate() || new Date(),
-        dueDate: doc.data().dueDate?.toDate() || null,
-        checklistItems: doc.data().checklistItems || [],
-      })) as FirebaseTask[]
+      return snapshot.docs.map(doc => {
+        const data = doc.data()
+        return {
+          id: doc.id,
+          title: data.title,
+          description: data.description,
+          status: data.status,
+          priority: data.priority,
+          createdAt: data.createdAt?.toDate() || new Date(),
+          updatedAt: data.updatedAt?.toDate() || new Date(),
+          dueDate: data.dueDate?.toDate() || null,
+          clientIds: data.clientIds || [],
+          allowComments: data.allowComments || true,
+          checklistItems: data.checklists || [],
+        }
+      })
     } catch (error) {
       console.error('Erreur lors de la récupération des tâches:', error)
       throw error

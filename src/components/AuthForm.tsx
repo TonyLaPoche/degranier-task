@@ -1,7 +1,7 @@
 'use client'
 
 import { useState } from 'react'
-import { useAuth } from '@/hooks/useAuth.tsx'
+import { useAuth } from '@/hooks/useAuth'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -34,8 +34,8 @@ export default function AuthForm({ defaultMode = 'signin' }: AuthFormProps) {
       } else {
         await signIn(email, password)
       }
-    } catch (error: any) {
-      setError(error.message || 'Une erreur est survenue')
+    } catch (error: unknown) {
+      setError(error instanceof Error ? error.message : 'Une erreur est survenue')
     } finally {
       setLoading(false)
     }
@@ -47,8 +47,8 @@ export default function AuthForm({ defaultMode = 'signin' }: AuthFormProps) {
 
     try {
       await signInWithGoogle()
-    } catch (error: any) {
-      setError(error.message || 'Erreur de connexion Google')
+    } catch (error: unknown) {
+      setError(error instanceof Error ? error.message : 'Erreur de connexion Google')
     } finally {
       setLoading(false)
     }

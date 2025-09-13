@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -10,7 +10,7 @@ import { Textarea } from "@/components/ui/textarea"
 import { Badge } from "@/components/ui/badge"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { Loader2, Plus, Edit, Trash2, Clock, Calendar, MapPin, AlertCircle, Phone, Mail } from "lucide-react"
+import { Loader2, Plus, Edit, Trash2, Clock, Calendar, Phone } from "lucide-react"
 import ContactInfoManager from "@/components/contact-info-manager"
 
 interface ContactHours {
@@ -82,7 +82,7 @@ export default function ContactHoursManager() {
 
   const fetchContactHours = async () => {
     try {
-      const response = await fetch("/api/contact-hours")
+      const response = await fetch("/api/firebase/contact-hours")
       if (response.ok) {
         const data = await response.json()
         setContactHours(data)
@@ -96,7 +96,7 @@ export default function ContactHoursManager() {
 
   const fetchVacations = async () => {
     try {
-      const response = await fetch("/api/vacations")
+      const response = await fetch("/api/firebase/vacations")
       if (response.ok) {
         const data = await response.json()
         setVacations(data)
@@ -134,7 +134,7 @@ export default function ContactHoursManager() {
     setError("")
 
     try {
-      const response = await fetch("/api/contact-hours", {
+      const response = await fetch("/api/firebase/contact-hours", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -183,7 +183,7 @@ export default function ContactHoursManager() {
     setError("")
 
     try {
-      const response = await fetch(`/api/contact-hours/${editingHours.id}`, {
+      const response = await fetch(`/api/firebase/contact-hours/${editingHours.id}`, {
         method: "PUT",
         headers: {
           "Content-Type": "application/json",
@@ -213,7 +213,7 @@ export default function ContactHoursManager() {
     }
 
     try {
-      const response = await fetch(`/api/contact-hours/${hoursId}`, {
+      const response = await fetch(`/api/firebase/contact-hours/${hoursId}`, {
         method: "DELETE",
       })
 
@@ -257,7 +257,7 @@ export default function ContactHoursManager() {
     setError("")
 
     try {
-      const response = await fetch("/api/vacations", {
+      const response = await fetch("/api/firebase/vacations", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -314,7 +314,7 @@ export default function ContactHoursManager() {
     setError("")
 
     try {
-      const response = await fetch(`/api/vacations/${editingVacation.id}`, {
+      const response = await fetch(`/api/firebase/vacations/${editingVacation.id}`, {
         method: "PUT",
         headers: {
           "Content-Type": "application/json",
@@ -348,7 +348,7 @@ export default function ContactHoursManager() {
     }
 
     try {
-      const response = await fetch(`/api/vacations/${vacationId}`, {
+      const response = await fetch(`/api/firebase/vacations/${vacationId}`, {
         method: "DELETE",
       })
 
@@ -363,9 +363,6 @@ export default function ContactHoursManager() {
     }
   }
 
-  const getDayName = (dayOfWeek: number) => {
-    return DAYS_OF_WEEK.find(day => day.value === dayOfWeek)?.label || "Inconnu"
-  }
 
   const formatTime = (time: string) => {
     return time.substring(0, 5) // HH:MM

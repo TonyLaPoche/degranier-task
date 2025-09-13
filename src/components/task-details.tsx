@@ -74,7 +74,7 @@ interface Task {
 
 interface TaskDetailsProps {
   task: Task
-  clients?: any[]
+  clients?: { id: string; name?: string; email: string; role: string }[]
   onUpdate?: () => void
   onClose?: () => void
 }
@@ -91,27 +91,15 @@ export default function TaskDetails({ task, clients = [], onUpdate, onClose }: T
   const [updateStatus, setUpdateStatus] = useState("")
 
   // États pour les checklists - synchronisés avec les props
-  const [checklists, setChecklists] = useState<TaskChecklist[]>(task.checklists ?? task.checklistItems?.map((item: string, index: number) => ({
-    id: `item-${index}`,
-    text: item,
-    isCompleted: false,
-    order: index,
-    taskId: task.id
-  })) ?? [])
+  const [checklists, setChecklists] = useState<TaskChecklist[]>(task.checklists ?? [])
   const [newChecklistItem, setNewChecklistItem] = useState("")
   const [isAddingChecklist, setIsAddingChecklist] = useState(false)
 
   // Synchroniser les états quand task change
   useEffect(() => {
-    const checklistData = task.checklists ?? task.checklistItems?.map((item: string, index: number) => ({
-      id: `item-${index}`,
-      text: item,
-      isCompleted: false,
-      order: index,
-      taskId: task.id
-    })) ?? []
+    const checklistData = task.checklists ?? []
     setChecklists(checklistData)
-  }, [task.checklists, task.checklistItems, task.id])
+  }, [task.checklists, task.id])
 
   useEffect(() => {
     setEditTitle(task.title)
@@ -567,18 +555,15 @@ export default function TaskDetails({ task, clients = [], onUpdate, onClose }: T
           <div className="space-y-4">
             <h3 className="text-lg font-medium">Clients assignés</h3>
             <div className="space-y-2">
-              {(task.clientIds?.length || 0) === 0 ? (
+              {(task.clients?.length || 0) === 0 ? (
                 <p className="text-sm text-muted-foreground">Aucun client assigné</p>
               ) : (
-                task.clientIds?.map((clientId) => {
-                  const client = clients.find(c => c.id === clientId)
-                  return (
-                    <div key={clientId} className="flex items-center gap-2 p-2 border rounded">
-                      <User className="h-4 w-4 text-muted-foreground" />
-                      <span className="text-sm">{client ? (client.name || client.email) : 'Client inconnu'}</span>
-                    </div>
-                  )
-                })
+                task.clients?.map((client) => (
+                  <div key={client.user.id} className="flex items-center gap-2 p-2 border rounded">
+                    <User className="h-4 w-4 text-muted-foreground" />
+                    <span className="text-sm">{client.user.name || client.user.email}</span>
+                  </div>
+                ))
               )}
             </div>
           </div>

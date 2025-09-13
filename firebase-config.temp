@@ -1,8 +1,0 @@
-# Copie ces variables dans ton .env.local quand tu auras configuré Firebase
-NEXT_PUBLIC_FIREBASE_API_KEY=ta_vraie_api_key
-NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN=degranier-task.firebaseapp.com
-NEXT_PUBLIC_FIREBASE_PROJECT_ID=degranier-task
-NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET=degranier-task.appspot.com
-NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID=ton_sender_id
-NEXT_PUBLIC_FIREBASE_APP_ID=ton_app_id
-

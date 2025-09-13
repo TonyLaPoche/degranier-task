@@ -53,7 +53,7 @@ export default function FirebaseDemo() {
       if (prismaUsersRes.ok) {
         const allUsersData = await prismaUsersRes.json()
         // Filtrer seulement les clients
-        const clientUsers = allUsersData.filter((user: any) => user.role === 'CLIENT')
+        const clientUsers = allUsersData.filter((user: { role?: string }) => user.role === 'CLIENT')
         setPrismaUsers(clientUsers)
       }
 

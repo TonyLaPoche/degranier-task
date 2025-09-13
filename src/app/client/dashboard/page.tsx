@@ -1,17 +1,15 @@
 "use client"
 
-import { useAuth } from "@/hooks/useAuth.tsx"
+import { useAuth } from "@/hooks/useAuth"
 import { useRouter } from "next/navigation"
 import { useEffect, useState } from "react"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
-import { Loader2, CheckSquare, Clock, AlertCircle, Filter, SortAsc } from "lucide-react"
+import { Loader2, CheckSquare, Clock, AlertCircle, Filter } from "lucide-react"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import TaskComments from "@/components/task-comments"
 import ClientProjectCard from "@/components/client-project-card"
 import ClientContactInfo from "@/components/client-contact-info"
-import { getAllowComments } from "@/lib/utils"
 
 interface TaskComment {
   id: string

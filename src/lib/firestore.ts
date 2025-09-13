@@ -10,7 +10,6 @@ import {
   where,
   orderBy,
   Timestamp,
-  onSnapshot,
   type DocumentData,
   type QueryDocumentSnapshot
 } from 'firebase/firestore'
@@ -119,11 +118,11 @@ export const getDocument = async (
 
 export const getCollection = async (
   collectionName: string,
-  constraints: any[] = []
+  constraints: unknown[] = [] // Firestore query constraints
 ) => {
   try {
     const collectionRef = collection(db, collectionName)
-    const q = query(collectionRef, ...constraints)
+    const q = constraints.length > 0 ? query(collectionRef, ...(constraints as any[])) : collectionRef // eslint-disable-line @typescript-eslint/no-explicit-any
     const querySnapshot = await getDocs(q)
 
     return querySnapshot.docs.map((doc: QueryDocumentSnapshot) => ({
@@ -145,7 +144,7 @@ export const getTasksForUser = async (userId: string, userRole: string) => {
     } else {
       // Client voit seulement ses tâches
       const allTasks = await getCollection('tasks')
-      return allTasks.filter((task: any) =>
+      return allTasks.filter((task: any) => // eslint-disable-line @typescript-eslint/no-explicit-any
         task.clientIds && task.clientIds.includes(userId)
       )
     }

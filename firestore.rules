@@ -1,0 +1,42 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Règles pour les tâches
+    match /tasks/{taskId} {
+      // Lecture : utilisateurs authentifiés peuvent lire toutes les tâches
+      allow read: if request.auth != null;
+
+      // Écriture : seulement les administrateurs peuvent créer/modifier des tâches
+      allow create, update, delete: if request.auth != null &&
+        request.auth.token.role == 'ADMIN';
+    }
+
+    // Règles pour les checklists
+    match /taskChecklists/{checklistId} {
+      // Lecture : utilisateurs authentifiés peuvent lire les checklists
+      allow read: if request.auth != null;
+
+      // Écriture : utilisateurs authentifiés peuvent créer/modifier leurs checklists
+      allow create, update, delete: if request.auth != null;
+    }
+
+    // Règles pour les utilisateurs
+    match /users/{userId} {
+      // Lecture : utilisateurs peuvent lire leur propre profil ou admins peuvent tout lire
+      allow read: if request.auth != null &&
+        (request.auth.uid == userId || request.auth.token.role == 'ADMIN');
+
+      // Écriture : utilisateurs peuvent modifier leur propre profil, admins peuvent tout faire
+      allow create, update: if request.auth != null &&
+        (request.auth.uid == userId || request.auth.token.role == 'ADMIN');
+
+      // Suppression : seulement les admins
+      allow delete: if request.auth != null && request.auth.token.role == 'ADMIN';
+    }
+
+    // Règles pour les autres collections (contact-info, social-media, etc.)
+    match /{document=**} {
+      allow read, write: if request.auth != null;
+    }
+  }
+}

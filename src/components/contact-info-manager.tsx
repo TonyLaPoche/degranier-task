@@ -38,7 +38,7 @@ export default function ContactInfoManager() {
 
   const fetchContactInfo = async () => {
     try {
-      const response = await fetch("/api/contact-info")
+      const response = await fetch("/api/firebase/contact-info")
       if (response.ok) {
         const data = await response.json()
         setContactInfo(data)
@@ -68,7 +68,7 @@ export default function ContactInfoManager() {
     setError("")
 
     try {
-      const response = await fetch("/api/contact-info", {
+      const response = await fetch("/api/firebase/contact-info", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",

@@ -4,10 +4,11 @@ import { taskService } from "@/services/firebaseServices"
 // DELETE /api/firebase/tasks/[id] - Supprimer une tâche spécifique
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const taskId = params.id
+    const resolvedParams = await params
+    const taskId = resolvedParams.id
 
     if (!taskId) {
       return NextResponse.json(
@@ -35,10 +36,11 @@ export async function DELETE(
 // PUT /api/firebase/tasks/[id] - Mettre à jour une tâche spécifique
 export async function PUT(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const taskId = params.id
+    const resolvedParams = await params
+    const taskId = resolvedParams.id
     const updateData = await request.json()
 
     if (!taskId) {
@@ -64,10 +66,11 @@ export async function PUT(
 // GET /api/firebase/tasks/[id] - Récupérer une tâche spécifique
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const taskId = params.id
+    const resolvedParams = await params
+    const taskId = resolvedParams.id
 
     if (!taskId) {
       return NextResponse.json(
