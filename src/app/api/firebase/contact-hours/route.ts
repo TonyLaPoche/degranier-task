@@ -42,20 +42,39 @@ export async function GET() {
 
 export async function POST(request: NextRequest) {
   try {
-    const { dayOfWeek, openTime, closeTime, isActive } = await request.json()
+    const body = await request.json()
+    console.log("🔥 API POST /api/firebase/contact-hours appelée")
+    console.log("📝 Payload reçu:", JSON.stringify(body, null, 2))
 
-    if (dayOfWeek === undefined || !openTime || !closeTime) {
+    // Accepter à la fois les anciens et nouveaux noms de propriétés
+    const { 
+      dayOfWeek, 
+      openTime, 
+      closeTime, 
+      startTime, 
+      endTime, 
+      isActive 
+    } = body
+
+    // Utiliser les nouvelles propriétés si disponibles, sinon les anciennes
+    const finalOpenTime = openTime || startTime
+    const finalCloseTime = closeTime || endTime
+
+    if (dayOfWeek === undefined || !finalOpenTime || !finalCloseTime) {
+      console.log("❌ Validation échouée:", { dayOfWeek, finalOpenTime, finalCloseTime })
       return NextResponse.json(
         { message: "Le jour de la semaine, l'heure d'ouverture et de fermeture sont requis" },
         { status: 400 }
       )
     }
 
+    console.log("✅ Validation passée, création des horaires...")
+
     const contactHoursRef = collection(db, "contact-hours")
     const newContactHours = {
       dayOfWeek,
-      openTime,
-      closeTime,
+      openTime: finalOpenTime,
+      closeTime: finalCloseTime,
       isActive: isActive ?? true,
       createdAt: new Date().toISOString(),
     }
@@ -67,9 +86,10 @@ export async function POST(request: NextRequest) {
       ...newContactHours,
     }
 
+    console.log("✅ Horaires créés avec succès:", docRef.id)
     return NextResponse.json(formattedContactHours, { status: 201 })
   } catch (error) {
-    console.error("Erreur lors de la création des horaires de contact:", error)
+    console.error("❌ Erreur lors de la création des horaires de contact:", error)
     return NextResponse.json(
       { message: "Erreur interne du serveur" },
       { status: 500 }

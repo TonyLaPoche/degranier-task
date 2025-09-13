@@ -63,22 +63,21 @@ export async function POST(request: NextRequest) {
     const snapshot = await getDocs(contactInfoRef)
     const existingDoc = snapshot.docs[0]
 
-    const contactData = {
+    const baseContactData = {
       phone: phone?.trim() || null,
       email: email?.trim() || null,
       address: address?.trim() || null,
       isActive: true,
       updatedAt: new Date().toISOString(),
-      createdAt: undefined as string | undefined,
     }
 
     if (existingDoc) {
       // Mettre à jour les informations existantes
-      await updateDoc(existingDoc.ref, contactData)
+      await updateDoc(existingDoc.ref, baseContactData)
 
       const updatedContact: ContactInfo = {
         id: existingDoc.id,
-        ...contactData,
+        ...baseContactData,
         createdAt: existingDoc.data().createdAt,
       }
 
@@ -86,7 +85,7 @@ export async function POST(request: NextRequest) {
     } else {
       // Créer de nouvelles informations de contact
       const newContactData = {
-        ...contactData,
+        ...baseContactData,
         createdAt: new Date().toISOString(),
       }
       const docRef = await addDoc(contactInfoRef, newContactData)

@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation"
 interface ChecklistItem {
   id: string
   title: string
-  isCompleted?: boolean
+  isCompleted: boolean
   completed?: boolean  // Support des deux formats
   order: number
   taskId?: string
@@ -123,12 +123,12 @@ export function useAdminDashboard() {
         order: checklist.order,
         createdAt: checklist.createdAt instanceof Date ? checklist.createdAt : 
                   (typeof checklist.createdAt === 'string' ? new Date(checklist.createdAt) : 
-                  (checklist.createdAt && typeof checklist.createdAt === 'object' && checklist.createdAt.seconds ? 
-                   new Date(checklist.createdAt.seconds * 1000) : new Date())),
+                  (checklist.createdAt && typeof checklist.createdAt === 'object' && (checklist.createdAt as any).seconds ? 
+                   new Date((checklist.createdAt as any).seconds * 1000) : new Date())),
         updatedAt: checklist.updatedAt instanceof Date ? checklist.updatedAt : 
                   (typeof checklist.updatedAt === 'string' ? new Date(checklist.updatedAt) : 
-                  (checklist.updatedAt && typeof checklist.updatedAt === 'object' && checklist.updatedAt.seconds ? 
-                   new Date(checklist.updatedAt.seconds * 1000) : new Date()))
+                  (checklist.updatedAt && typeof checklist.updatedAt === 'object' && (checklist.updatedAt as any).seconds ? 
+                   new Date((checklist.updatedAt as any).seconds * 1000) : new Date()))
       })) : [],
       allowComments: true // Default to true for now
     }

@@ -8,11 +8,11 @@ import { Loader2, Clock, Calendar, ExternalLink, Globe, Facebook, Twitter, Insta
 interface ContactHours {
   id: string
   dayOfWeek: number
-  startTime: string
-  endTime: string
+  openTime: string
+  closeTime: string
   isActive: boolean
   createdAt: Date
-  updatedAt: Date
+  updatedAt?: Date
 }
 
 interface ContactInfo {
@@ -27,11 +27,12 @@ interface ContactInfo {
 
 interface Vacation {
   id: string
-  title: string
-  description?: string
-  startDate: Date
-  endDate: Date
+  reason: string
+  description?: string | null
+  startDate: string | Date
+  endDate: string | Date
   isActive: boolean
+  createdAt?: string
 }
 
 interface SocialMedia {
@@ -146,7 +147,8 @@ export default function ClientContactInfo() {
     return DAYS_OF_WEEK.find(day => day.value === dayOfWeek)?.label || "Inconnu"
   }
 
-  const formatTime = (time: string) => {
+  const formatTime = (time: string | undefined) => {
+    if (!time) return "N/A"
     return time.substring(0, 5) // HH:MM
   }
 
@@ -185,8 +187,8 @@ export default function ClientContactInfo() {
     const startTime = new Date()
     const endTime = new Date()
 
-    const [startHour, startMinute] = currentHours.startTime.split(':').map(Number)
-    const [endHour, endMinute] = currentHours.endTime.split(':').map(Number)
+    const [startHour, startMinute] = currentHours.openTime.split(':').map(Number)
+    const [endHour, endMinute] = currentHours.closeTime.split(':').map(Number)
 
     startTime.setHours(startHour, startMinute, 0, 0)
     endTime.setHours(endHour, endMinute, 0, 0)
@@ -235,7 +237,7 @@ export default function ClientContactInfo() {
                 </div>
                 {currentHours && (
                   <p className="text-xs text-muted-foreground mt-1">
-                    {formatTime(currentHours.startTime)} - {formatTime(currentHours.endTime)}
+                    {formatTime(currentHours.openTime)} - {formatTime(currentHours.closeTime)}
                   </p>
                 )}
               </div>
@@ -249,7 +251,7 @@ export default function ClientContactInfo() {
                   </div>
                   {activeVacations.map(vacation => (
                     <div key={vacation.id} className="text-xs text-orange-700">
-                      <p className="font-medium">{vacation.title}</p>
+                      <p className="font-medium">{vacation.reason}</p>
                       {vacation.description && (
                         <p className="text-orange-600">{vacation.description}</p>
                       )}
@@ -279,7 +281,7 @@ export default function ClientContactInfo() {
                           </span>
                           <span className="text-muted-foreground">
                             {dayHours && dayHours.isActive
-                              ? `${formatTime(dayHours.startTime)} - ${formatTime(dayHours.endTime)}`
+                              ? `${formatTime(dayHours.openTime)} - ${formatTime(dayHours.closeTime)}`
                               : "Fermé"
                             }
                           </span>

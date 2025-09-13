@@ -7,6 +7,7 @@ interface Vacation {
   startDate: string
   endDate: string
   reason: string
+  description?: string | null
   isActive: boolean
   createdAt: string
 }
@@ -25,6 +26,7 @@ export async function GET() {
         startDate: data.startDate,
         endDate: data.endDate,
         reason: data.reason,
+        description: data.description || null,
         isActive: data.isActive ?? true,
         createdAt: data.createdAt,
       })
@@ -42,20 +44,39 @@ export async function GET() {
 
 export async function POST(request: NextRequest) {
   try {
-    const { startDate, endDate, reason, isActive } = await request.json()
+    const body = await request.json()
+    console.log("🔥 API POST /api/firebase/vacations appelée")
+    console.log("📝 Payload reçu:", JSON.stringify(body, null, 2))
 
-    if (!startDate || !endDate || !reason) {
+    // Accepter à la fois les anciens et nouveaux noms de propriétés
+    const { 
+      startDate, 
+      endDate, 
+      reason, 
+      title, 
+      description, 
+      isActive 
+    } = body
+
+    // Utiliser title si disponible, sinon reason
+    const finalReason = reason || title
+
+    if (!startDate || !endDate || !finalReason) {
+      console.log("❌ Validation échouée:", { startDate, endDate, finalReason })
       return NextResponse.json(
-        { message: "La date de début, la date de fin et la raison sont requis" },
+        { message: "La date de début, la date de fin et le titre/raison sont requis" },
         { status: 400 }
       )
     }
+
+    console.log("✅ Validation passée, création des vacances...")
 
     const vacationsRef = collection(db, "vacations")
     const newVacation = {
       startDate,
       endDate,
-      reason: reason.trim(),
+      reason: finalReason.trim ? finalReason.trim() : finalReason,
+      description: description || null,
       isActive: isActive ?? true,
       createdAt: new Date().toISOString(),
     }
@@ -67,9 +88,10 @@ export async function POST(request: NextRequest) {
       ...newVacation,
     }
 
+    console.log("✅ Vacances créées avec succès:", docRef.id)
     return NextResponse.json(formattedVacation, { status: 201 })
   } catch (error) {
-    console.error("Erreur lors de la création des vacances:", error)
+    console.error("❌ Erreur lors de la création des vacances:", error)
     return NextResponse.json(
       { message: "Erreur interne du serveur" },
       { status: 500 }

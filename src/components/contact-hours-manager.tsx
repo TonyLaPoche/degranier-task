@@ -16,22 +16,22 @@ import ContactInfoManager from "@/components/contact-info-manager"
 interface ContactHours {
   id: string
   dayOfWeek: number
-  startTime: string
-  endTime: string
+  openTime: string
+  closeTime: string
   isActive: boolean
   createdAt: Date
-  updatedAt: Date
+  updatedAt?: Date
 }
 
 interface Vacation {
   id: string
-  title: string
-  description?: string
-  startDate: Date
-  endDate: Date
+  reason: string
+  description?: string | null
+  startDate: string | Date
+  endDate: string | Date
   isActive: boolean
-  createdAt: Date
-  updatedAt: Date
+  createdAt?: string
+  updatedAt?: Date
 }
 
 const DAYS_OF_WEEK = [
@@ -161,8 +161,8 @@ export default function ContactHoursManager() {
     setEditingHours(hours)
     setHoursFormData({
       dayOfWeek: hours.dayOfWeek,
-      startTime: hours.startTime,
-      endTime: hours.endTime,
+      startTime: hours.openTime,
+      endTime: hours.closeTime,
       isActive: hours.isActive,
     })
     setShowHoursModal(true)
@@ -287,10 +287,10 @@ export default function ContactHoursManager() {
   const handleEditVacation = (vacation: Vacation) => {
     setEditingVacation(vacation)
     setVacationFormData({
-      title: vacation.title,
+      title: vacation.reason,
       description: vacation.description || "",
-      startDate: vacation.startDate.toISOString().split('T')[0],
-      endDate: vacation.endDate.toISOString().split('T')[0],
+      startDate: typeof vacation.startDate === 'string' ? vacation.startDate.split('T')[0] : vacation.startDate.toISOString().split('T')[0],
+      endDate: typeof vacation.endDate === 'string' ? vacation.endDate.split('T')[0] : vacation.endDate.toISOString().split('T')[0],
       isActive: vacation.isActive,
     })
     setShowVacationModal(true)
@@ -364,7 +364,8 @@ export default function ContactHoursManager() {
   }
 
 
-  const formatTime = (time: string) => {
+  const formatTime = (time: string | undefined) => {
+    if (!time) return "N/A"
     return time.substring(0, 5) // HH:MM
   }
 
@@ -487,7 +488,7 @@ export default function ContactHoursManager() {
                         <div className="space-y-2">
                           <div className="flex items-center gap-2 text-sm">
                             <Clock className="h-4 w-4 text-muted-foreground" />
-                            <span>{formatTime(dayHours.startTime)} - {formatTime(dayHours.endTime)}</span>
+                            <span>{formatTime(dayHours.openTime)} - {formatTime(dayHours.closeTime)}</span>
                           </div>
                           {!dayHours.isActive && (
                             <Badge variant="secondary" className="text-xs">
@@ -560,7 +561,7 @@ export default function ContactHoursManager() {
                             <Calendar className="h-4 w-4" />
                           </div>
                           <div>
-                            <CardTitle className="text-base">{vacation.title}</CardTitle>
+                            <CardTitle className="text-base">{vacation.reason}</CardTitle>
                             <div className="flex items-center gap-2 mt-1">
                               {isActive && <Badge className="text-xs bg-green-100 text-green-800">En cours</Badge>}
                               {isUpcoming && <Badge variant="secondary" className="text-xs">À venir</Badge>}
@@ -580,7 +581,7 @@ export default function ContactHoursManager() {
                           <Button
                             variant="ghost"
                             size="sm"
-                            onClick={() => handleDeleteVacation(vacation.id, vacation.title)}
+                            onClick={() => handleDeleteVacation(vacation.id, vacation.reason)}
                             className="h-8 w-8 p-0 text-red-600 hover:text-red-700"
                           >
                             <Trash2 className="h-4 w-4" />
