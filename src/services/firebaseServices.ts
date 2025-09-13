@@ -199,110 +199,72 @@ export class FirebaseTaskService {
 
   async getTasks(userRole?: string, userId?: string): Promise<FirebaseTask[]> {
     try {
-      let q = collection(db, this.collectionName) 
-      // Filtrage selon le rôle
+      console.log(`🔍 getTasks appelé avec userRole: ${userRole}, userId: ${userId}`)
+      
+      let snapshot
+      
+      // Filtrage selon le rôle - éviter l'index composite pour l'instant
       if (userRole === 'CLIENT' && userId) {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        q = query(q, where('clientIds', 'array-contains', userId)) as any
+        console.log(`📋 Filtrage pour CLIENT avec userId: ${userId}`)
+        // Requête simple sans orderBy pour éviter l'index composite
+        const q = query(collection(db, this.collectionName), where('clientIds', 'array-contains', userId))
+        snapshot = await getDocs(q)
+        console.log(`📊 ${snapshot.docs.length} documents trouvés pour le client`)
+      } else {
+        console.log('📋 Récupération de toutes les tâches')
+        // Pour les admins, récupérer toutes les tâches avec tri
+        const q = query(collection(db, this.collectionName), orderBy('createdAt', 'desc'))
+        snapshot = await getDocs(q)
+        console.log(`📊 ${snapshot.docs.length} documents trouvés au total`)
       }
 
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      q = query(q, orderBy('createdAt', 'desc')) as any
+      console.log('🔥 Requête Firestore exécutée avec succès')
 
-      const snapshot = await getDocs(q)
-      const tasks = await Promise.all(snapshot.docs.map(async (docSnapshot) => {
+      const tasks = snapshot.docs.map((docSnapshot) => {
         const data = docSnapshot.data()
         const taskId = docSnapshot.id
+        
+        console.log(`📄 Traitement de la tâche ${taskId}:`, data.title)
 
-        // Récupérer les données de base
-        const baseTask = {
+        // Données de base uniquement pour éviter les erreurs
+        const task: FirebaseTask = {
           id: taskId,
-          title: data.title,
-          description: data.description,
-          status: data.status,
-          priority: data.priority,
+          title: data.title || 'Sans titre',
+          description: data.description || null,
+          status: data.status || 'TODO',
+          priority: data.priority || 'MEDIUM',
           createdAt: convertFirestoreDate(data.createdAt),
           updatedAt: convertFirestoreDate(data.updatedAt),
           dueDate: data.dueDate ? convertFirestoreDate(data.dueDate) : null,
           clientIds: data.clientIds || [],
-          allowComments: data.allowComments || true,
+          allowComments: data.allowComments !== undefined ? data.allowComments : true,
           checklistItems: data.checklistItems || data.checklists || [],
           checklists: data.checklistItems || data.checklists || [],
+          // Données simplifiées pour éviter les erreurs
+          clients: [],
+          history: data.history || [],
+          comments: data.comments || [],
         }
 
-        // Récupérer les informations complètes des clients
-        const clients: FirebaseUser[] = []
-        if (data.clientIds && Array.isArray(data.clientIds)) {
-          for (const clientId of data.clientIds) {
-            try {
-              const clientDoc = await getDoc(doc(db, 'users', clientId))
-              if (clientDoc.exists()) {
-                const clientData = clientDoc.data()
-                clients.push({
-                  id: clientDoc.id,
-                  email: clientData.email,
-                  name: clientData.name,
-                  role: clientData.role,
-                  createdAt: convertFirestoreDate(clientData.createdAt),
-                  updatedAt: convertFirestoreDate(clientData.updatedAt),
-                })
-              }
-            } catch (error) {
-              console.warn(`Erreur lors de la récupération du client ${clientId}:`, error)
-            }
-          }
-        }
+        return task
+      })
 
-        // Récupérer l'historique (si stocké comme sous-collection)
-        const history: FirebaseHistoryItem[] = []
-        try {
-          const historySnapshot = await getDocs(collection(db, this.collectionName, taskId, 'history'))
-          historySnapshot.docs.forEach(historyDoc => {
-            const historyData = historyDoc.data()
-            history.push({
-              id: historyDoc.id,
-              field: historyData.field || 'update',
-              oldValue: historyData.oldValue || null,
-              newValue: historyData.newValue || null,
-              createdAt: convertFirestoreDate(historyData.createdAt),
-              changedBy: historyData.changedBy || { id: 'unknown', name: null, email: 'unknown' }
-            })
-          })
-        } catch (error) {
-          // L'historique peut ne pas exister, ce n'est pas grave
-          console.debug(`Pas d'historique trouvé pour la tâche ${taskId}`)
-        }
-
-        // Récupérer les commentaires (si stockés comme sous-collection)
-        const comments: FirebaseComment[] = []
-        try {
-          const commentsSnapshot = await getDocs(collection(db, this.collectionName, taskId, 'comments'))
-          commentsSnapshot.docs.forEach(commentDoc => {
-            const commentData = commentDoc.data()
-            comments.push({
-              id: commentDoc.id,
-              content: commentData.content,
-              isFromClient: commentData.isFromClient || false,
-              createdAt: convertFirestoreDate(commentData.createdAt),
-              author: commentData.author || { id: 'unknown', name: null, email: 'unknown', role: 'CLIENT' }
-            })
-          })
-        } catch (error) {
-          // Les commentaires peuvent ne pas exister, ce n'est pas grave
-          console.debug(`Pas de commentaires trouvés pour la tâche ${taskId}`)
-        }
-
-        return {
-          ...baseTask,
-          clients,
-          history,
-          comments,
-        }
-      }))
-
+      console.log(`✅ ${tasks.length} tâches traitées avec succès`)
+      
+      // Trier côté JavaScript si nécessaire (pour les clients)
+      if (userRole === 'CLIENT') {
+        tasks.sort((a, b) => {
+          const dateA = a.createdAt ? new Date(a.createdAt).getTime() : 0
+          const dateB = b.createdAt ? new Date(b.createdAt).getTime() : 0
+          return dateB - dateA // Tri décroissant (plus récent en premier)
+        })
+        console.log('🔄 Tâches triées côté JavaScript pour le client')
+      }
+      
       return tasks
     } catch (error) {
-      console.error('Erreur lors de la récupération des tâches:', error)
+      console.error('❌ Erreur lors de la récupération des tâches:', error)
+      console.error('Stack trace:', error instanceof Error ? error.stack : String(error))
       throw error
     }
   }

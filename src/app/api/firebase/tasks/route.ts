@@ -4,20 +4,26 @@ import { taskService } from "@/services/firebaseServices"
 // Route Firebase pour les tâches
 export async function GET(request: NextRequest) {
   try {
+    console.log("🔍 GET /api/firebase/tasks appelé")
+    
     // Récupérer les paramètres de requête pour le filtrage
     const { searchParams } = new URL(request.url)
     const userRole = searchParams.get('role')
     const userId = searchParams.get('userId')
+    
+    console.log(`📋 Paramètres: role=${userRole}, userId=${userId}`)
 
-    // Pour l'instant, on récupère toutes les tâches (filtrage côté service si nécessaire)
-    // TODO: Ajouter l'authentification Firebase
+    // Test simple d'abord
+    console.log("🔥 Tentative d'appel du service Firebase...")
     const tasks = await taskService.getTasks(userRole || undefined, userId || undefined)
+    console.log(`✅ Service Firebase réussi, ${tasks.length} tâches trouvées`)
 
     return NextResponse.json(tasks)
   } catch (error) {
-    console.error("Erreur lors de la récupération des tâches Firebase:", error)
+    console.error("❌ Erreur lors de la récupération des tâches Firebase:", error)
+    console.error("Stack trace:", error instanceof Error ? error.stack : String(error))
     return NextResponse.json(
-      { message: "Erreur interne du serveur" },
+      { message: "Erreur interne du serveur", error: error instanceof Error ? error.message : String(error) },
       { status: 500 }
     )
   }
