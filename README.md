@@ -1,20 +1,21 @@
 # Aurore De Granier - Espace Client
 
-Application PWA Next.js pour la gestion des projets de la journaliste Aurore De Granier avec système de collaboration client.
+Application PWA Next.js pour la gestion des projets de la journaliste Aurore De Granier avec système de collaboration client, alimentée par Firebase.
 
-## Fonctionnalités
+## ✨ Fonctionnalités
 
-- 🔐 **Authentification** : Connexion avec email/mot de passe ou Google OAuth
+- 🔐 **Authentification Firebase** : Connexion sécurisée avec email/mot de passe
 - 👨‍💼 **Dashboard Admin** : Gestion complète des projets et clients
 - 👥 **Dashboard Client** : Vue personnalisée des projets assignés
 - 📱 **Progressive Web App** : Installation sur mobile et desktop
-- 🎨 **Interface moderne** : Design responsive avec Tailwind CSS
+- 🎨 **Interface moderne** : Design responsive avec Tailwind CSS et shadcn/ui
 - 📊 **Gestion des projets** : Système de projets avec assignation multi-clients
-- 💬 **Système de commentaires** : Discussion sur les projets en cours
-- 📞 **Contact intégré** : Horaires et réseaux sociaux
-- 📋 **Historique complet** : Traçabilité de toutes les modifications
+- ✅ **Checklists** : Suivi détaillé des tâches avec validation admin/client
+- 📞 **Contact intégré** : Horaires, vacances et réseaux sociaux
+- 🗑️ **CRUD complet** : Création, lecture, mise à jour et suppression pour toutes les entités
+- 🔄 **Temps réel** : Synchronisation instantanée avec Firestore
 
-## Installation
+## 🚀 Installation
 
 1. **Cloner le projet**
    ```bash
@@ -27,34 +28,24 @@ Application PWA Next.js pour la gestion des projets de la journaliste Aurore De 
    npm install
    ```
 
-3. **Configuration de la base de données**
-   ```bash
-   # Générer le client Prisma
-   npm run db:generate
-
-   # Créer et peupler la base de données
-   npm run db:reset
-   ```
-
-4. **Configuration des variables d'environnement**
-
-   Créer un fichier `.env.local` avec :
+3. **Configuration Firebase**
+   
+   Créer un fichier `.env.local` avec vos clés Firebase :
    ```env
-   DATABASE_URL="file:./dev.db"
-   NEXTAUTH_URL="http://localhost:3000"
-   NEXTAUTH_SECRET="votre-secret-super-securise"
-   GOOGLE_CLIENT_ID="votre-google-client-id"
-   GOOGLE_CLIENT_SECRET="votre-google-client-secret"
+   NEXT_PUBLIC_FIREBASE_API_KEY="your-api-key"
+   NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN="your-project.firebaseapp.com"
+   NEXT_PUBLIC_FIREBASE_PROJECT_ID="your-project-id"
+   NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET="your-project.appspot.com"
+   NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID="your-sender-id"
+   NEXT_PUBLIC_FIREBASE_APP_ID="your-app-id"
    ```
 
-5. **Démarrer l'application**
+4. **Démarrer l'application**
    ```bash
    npm run dev
    ```
 
-## Comptes de test
-
-Après l'exécution de `npm run db:reset`, les comptes suivants sont disponibles :
+## 👤 Comptes de test
 
 ### Administrateur
 - **Email** : `aurore@degranier.fr`
@@ -67,7 +58,7 @@ Après l'exécution de `npm run db:reset`, les comptes suivants sont disponibles
 - **Email** : `jean@example.com`
 - **Mot de passe** : `client123`
 
-## Structure du projet
+## 📁 Structure du projet
 
 ```
 src/
@@ -75,47 +66,64 @@ src/
 │   ├── admin/dashboard/    # Dashboard administrateur
 │   ├── client/dashboard/   # Dashboard client
 │   ├── auth/               # Pages d'authentification
-│   └── api/                # API routes
+│   └── api/firebase/       # API routes Firebase
 ├── components/             # Composants réutilisables
 │   ├── ui/                 # Composants UI (shadcn/ui)
+│   ├── admin-dashboard/    # Composants dashboard admin
 │   └── providers.tsx       # Providers React
+├── hooks/                  # Custom hooks
+│   ├── useAuth.tsx        # Hook d'authentification Firebase
+│   └── useAdminDashboard.ts # Hook dashboard admin
 ├── lib/                    # Utilitaires
-│   ├── auth.ts            # Configuration NextAuth
-│   ├── db.ts              # Client Prisma
-│   └── seed.ts            # Script de seeding
+│   ├── firebase.ts        # Configuration Firebase
+│   └── firebase-admin.ts  # Firebase Admin SDK
+├── services/               # Services Firebase
+│   └── firebaseServices.ts # Services Firestore
 └── types/                  # Types TypeScript
 ```
 
-## Technologies utilisées
+## 🛠️ Technologies utilisées
 
-- **Next.js 15** - Framework React
+- **Next.js 15** - Framework React avec App Router
 - **TypeScript** - Typage statique
-- **Tailwind CSS** - Framework CSS
-- **Prisma** - ORM de base de données
-- **SQLite** - Base de données (facilement remplaçable par PostgreSQL)
-- **NextAuth.js** - Authentification
-- **shadcn/ui** - Composants UI
+- **Tailwind CSS** - Framework CSS utilitaire
+- **Firebase** - Backend-as-a-Service
+  - **Firebase Auth** - Authentification
+  - **Firestore** - Base de données NoSQL
+- **shadcn/ui** - Composants UI modernes
 - **Lucide React** - Icônes
 - **@ducanh2912/next-pwa** - Support PWA
 
-## API Routes
+## 🔌 API Routes Firebase
 
 ### Authentification
-- `POST /api/auth/signup` - Inscription d'un nouveau client
-- `GET/POST /api/auth/[...nextauth]` - Gestion NextAuth
+- Gérée automatiquement par Firebase Auth
 
-### Projets
-- `GET /api/tasks` - Récupérer les projets (filtrées par rôle)
-- `POST /api/tasks` - Créer un nouveau projet (admin uniquement)
-- `PUT /api/tasks/[id]` - Modifier un projet (admin uniquement)
-- `DELETE /api/tasks/[id]` - Supprimer un projet (admin uniquement)
+### Tâches/Projets
+- `GET /api/firebase/tasks` - Récupérer les projets
+- `POST /api/firebase/tasks` - Créer un projet
+- `GET /api/firebase/tasks/[id]` - Récupérer un projet
+- `PUT /api/firebase/tasks/[id]` - Modifier un projet
+- `DELETE /api/firebase/tasks/[id]` - Supprimer un projet
 
-### Commentaires
-- `GET /api/tasks/[id]/comments` - Récupérer les commentaires d'un projet
-- `POST /api/tasks/[id]/comments` - Ajouter un commentaire à un projet
+### Checklists
+- `GET /api/firebase/tasks/[id]/checklists` - Récupérer les checklists
+- `POST /api/firebase/tasks/[id]/checklists` - Ajouter une checklist
+- `PUT /api/firebase/tasks/[id]/checklists/[itemId]` - Modifier une checklist
+- `DELETE /api/firebase/tasks/[id]/checklists/[itemId]` - Supprimer une checklist
 
-### Contact
-- `GET /api/contact` - Récupérer horaires et réseaux sociaux
+### Utilisateurs
+- `GET /api/firebase/users` - Récupérer les utilisateurs
+- `GET /api/firebase/users/[id]` - Récupérer un utilisateur
+- `PUT /api/firebase/users/[id]` - Modifier un utilisateur
+- `DELETE /api/firebase/users/[id]` - Supprimer un utilisateur
+
+### Contact & Configuration
+- `GET/POST /api/firebase/contact-info` - Informations de contact
+- `GET/POST /api/firebase/contact-hours` - Horaires de contact
+- `GET/POST /api/firebase/vacations` - Périodes de vacances
+- `GET/POST /api/firebase/social-media` - Réseaux sociaux
+- `GET/POST /api/firebase/categories` - Catégories
 
 ## Configuration PWA
 
@@ -138,15 +146,11 @@ npm run dev          # Démarrer le serveur de développement
 npm run build        # Build de production
 npm run start        # Démarrer le serveur de production
 npm run lint         # Vérification ESLint
-npm run db:generate  # Générer le client Prisma
-npm run db:push      # Appliquer le schéma Prisma
-npm run db:seed      # Peupler la base de données
-npm run db:reset     # Reset complet de la base de données
 ```
 
 ### Base de données
 
-Le projet utilise SQLite par défaut pour la simplicité. Pour la production, modifier le `DATABASE_URL` dans le fichier `.env.local` pour pointer vers PostgreSQL.
+Le projet utilise Firebase Firestore, une base de données NoSQL en temps réel. Aucune configuration de base de données locale n'est nécessaire.
 
 ## Déploiement
 
