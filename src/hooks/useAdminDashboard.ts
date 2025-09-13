@@ -121,8 +121,14 @@ export function useAdminDashboard() {
         title: checklist.title,
         isCompleted: checklist.isCompleted || checklist.completed || false,  // Support des deux formats
         order: checklist.order,
-        createdAt: typeof checklist.createdAt === 'string' ? new Date(checklist.createdAt) : checklist.createdAt,
-        updatedAt: typeof checklist.updatedAt === 'string' ? new Date(checklist.updatedAt) : checklist.updatedAt
+        createdAt: checklist.createdAt instanceof Date ? checklist.createdAt : 
+                  (typeof checklist.createdAt === 'string' ? new Date(checklist.createdAt) : 
+                  (checklist.createdAt && typeof checklist.createdAt === 'object' && checklist.createdAt.seconds ? 
+                   new Date(checklist.createdAt.seconds * 1000) : new Date())),
+        updatedAt: checklist.updatedAt instanceof Date ? checklist.updatedAt : 
+                  (typeof checklist.updatedAt === 'string' ? new Date(checklist.updatedAt) : 
+                  (checklist.updatedAt && typeof checklist.updatedAt === 'object' && checklist.updatedAt.seconds ? 
+                   new Date(checklist.updatedAt.seconds * 1000) : new Date()))
       })) : [],
       allowComments: true // Default to true for now
     }

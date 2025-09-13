@@ -285,13 +285,13 @@ export default function ClientProjectCard({ task, onCommentAdded }: ClientProjec
                           className="flex items-center gap-3 p-3 border rounded-lg hover:bg-muted/30 transition-colors"
                         >
                           <Checkbox
-                            checked={item.isCompleted}
+                            checked={item.isCompleted || false}
                             disabled={true}
                             className="mt-0.5 cursor-not-allowed opacity-70"
                           />
                           <span
                             className={`flex-1 text-sm ${
-                              item.isCompleted
+                              (item.isCompleted || false)
                                 ? "line-through text-muted-foreground"
                                 : "text-foreground"
                             }`}
@@ -302,7 +302,7 @@ export default function ClientProjectCard({ task, onCommentAdded }: ClientProjec
                       ))}
                   </div>
                   <div className="text-xs text-muted-foreground">
-                    {task.checklists.filter(item => item.isCompleted).length} / {task.checklists.length} tâches terminées
+                    {task.checklists.filter(item => item.isCompleted || false).length} / {task.checklists.length} tâches terminées
                   </div>
                 </div>
               )}

@@ -216,9 +216,23 @@ export default function TaskDetails({ task, clients = [], onUpdate, onClose }: T
 
       if (response.ok) {
         const updatedItem = await response.json()
+        // Convertir le format de l'API (completed) vers le format du composant (isCompleted)
+        const formattedItem = {
+          ...updatedItem,
+          isCompleted: updatedItem.completed || updatedItem.isCompleted,
+          createdAt: updatedItem.createdAt instanceof Date ? updatedItem.createdAt : 
+                    (typeof updatedItem.createdAt === 'string' ? new Date(updatedItem.createdAt) : 
+                    (updatedItem.createdAt && typeof updatedItem.createdAt === 'object' && updatedItem.createdAt.seconds ? 
+                     new Date(updatedItem.createdAt.seconds * 1000) : new Date())),
+          updatedAt: updatedItem.updatedAt instanceof Date ? updatedItem.updatedAt : 
+                    (typeof updatedItem.updatedAt === 'string' ? new Date(updatedItem.updatedAt) : 
+                    (updatedItem.updatedAt && typeof updatedItem.updatedAt === 'object' && updatedItem.updatedAt.seconds ? 
+                     new Date(updatedItem.updatedAt.seconds * 1000) : new Date()))
+        }
+        
         setChecklists(prev =>
           prev.map(item =>
-            item.id === itemId ? updatedItem : item
+            item.id === itemId ? formattedItem : item
           )
         )
         onUpdate?.()
@@ -640,14 +654,14 @@ export default function TaskDetails({ task, clients = [], onUpdate, onClose }: T
                       className="flex items-center gap-3 p-3 border rounded-lg hover:bg-muted/30 transition-colors"
                     >
                       <Checkbox
-                        checked={item.isCompleted}
-                        onCheckedChange={() => handleToggleChecklistItem(item.id, item.isCompleted)}
+                        checked={item.isCompleted || false}
+                        onCheckedChange={() => handleToggleChecklistItem(item.id, item.isCompleted || false)}
                         className="mt-0.5"
                         disabled={!isAdmin}
                       />
                       <span
                         className={`flex-1 text-sm ${
-                          item.isCompleted
+                          (item.isCompleted || false)
                             ? "line-through text-muted-foreground"
                             : "text-foreground"
                         }`}
@@ -671,7 +685,7 @@ export default function TaskDetails({ task, clients = [], onUpdate, onClose }: T
 
             {checklists.length > 0 && (
               <div className="text-xs text-muted-foreground mt-4 pt-4 border-t">
-                {checklists.filter(item => item.isCompleted).length} / {checklists.length} tâches terminées
+                {checklists.filter(item => item.isCompleted || false).length} / {checklists.length} tâches terminées
               </div>
             )}
           </div>
