@@ -10,6 +10,7 @@ import {
   where,
   orderBy,
   Timestamp,
+  serverTimestamp
 } from 'firebase/firestore'
 import { db } from '@/lib/firebase'
 // import { adminDb } from '@/lib/firebase-admin' // Unused for now
@@ -242,14 +243,71 @@ export class FirebaseTaskService {
           checklists: data.checklistItems || data.checklists || [],
           // Données simplifiées pour éviter les erreurs
           clients: [],
-          history: data.history || [],
-          comments: data.comments || [],
+          history: [], // Sera rempli après
+          comments: [], // Sera rempli après
         }
 
         return task
       })
 
       console.log(`✅ ${tasks.length} tâches traitées avec succès`)
+      
+      // Récupérer l'historique et les commentaires pour chaque tâche
+      console.log('📚 Récupération de l\'historique et des commentaires...')
+      for (const task of tasks) {
+        try {
+          // Récupérer l'historique (sans orderBy pour éviter les index)
+          const historyQuery = query(
+            collection(db, "taskHistory"),
+            where("taskId", "==", task.id)
+          )
+          const historySnapshot = await getDocs(historyQuery)
+          const historyData = historySnapshot.docs.map(doc => {
+            const data = doc.data()
+            return {
+              id: doc.id,
+              field: data.field || 'update',
+              oldValue: data.oldValue || null,
+              newValue: data.newValue || null,
+              createdAt: convertFirestoreDate(data.createdAt),
+              changedBy: data.changedBy || { id: 'unknown', name: null, email: 'unknown' }
+            }
+          })
+          // Trier côté JavaScript
+          task.history = historyData.sort((a, b) => {
+            const dateA = a.createdAt ? new Date(a.createdAt).getTime() : 0
+            const dateB = b.createdAt ? new Date(b.createdAt).getTime() : 0
+            return dateB - dateA // Plus récent en premier
+          })
+
+          // Récupérer les commentaires (sans orderBy pour éviter les index)
+          const commentsQuery = query(
+            collection(db, "taskComments"),
+            where("taskId", "==", task.id)
+          )
+          const commentsSnapshot = await getDocs(commentsQuery)
+          const commentsData = commentsSnapshot.docs.map(doc => {
+            const data = doc.data()
+            return {
+              id: doc.id,
+              content: data.content || '',
+              isFromClient: data.isFromClient || false,
+              createdAt: convertFirestoreDate(data.createdAt),
+              author: data.author || { id: 'unknown', name: null, email: 'unknown', role: 'CLIENT' }
+            }
+          })
+          // Trier côté JavaScript
+          task.comments = commentsData.sort((a, b) => {
+            const dateA = a.createdAt ? new Date(a.createdAt).getTime() : 0
+            const dateB = b.createdAt ? new Date(b.createdAt).getTime() : 0
+            return dateA - dateB // Plus ancien en premier
+          })
+        } catch (error) {
+          console.warn(`⚠️ Erreur lors de la récupération des données supplémentaires pour la tâche ${task.id}:`, error)
+          // Continuer avec des données vides en cas d'erreur
+        }
+      }
+      console.log('✅ Historique et commentaires récupérés')
       
       // Trier côté JavaScript si nécessaire (pour les clients)
       if (userRole === 'CLIENT') {
@@ -320,15 +378,64 @@ export class FirebaseTaskService {
     }
   }
 
-  async updateTask(id: string, updates: Partial<Omit<FirebaseTask, 'id' | 'createdAt'>>): Promise<void> {
+  async updateTask(id: string, updates: Partial<Omit<FirebaseTask, 'id' | 'createdAt'>> & { note?: string }): Promise<void> {
     try {
+      console.log(`🔄 Mise à jour de la tâche ${id}:`, updates)
+      
       const docRef = doc(db, this.collectionName, id)
-      await updateDoc(docRef, {
-        ...updates,
-        updatedAt: Timestamp.now(),
-      })
+      
+      // Vérifier que la tâche existe
+      const taskSnap = await getDoc(docRef)
+      if (!taskSnap.exists()) {
+        throw new Error(`Tâche avec l'ID ${id} non trouvée`)
+      }
+      
+      // Si une note est fournie, l'ajouter à l'historique
+      if (updates.note) {
+        console.log(`📝 Ajout d'une note à l'historique: ${updates.note}`)
+        
+        try {
+          // Créer une entrée d'historique
+          const historyEntry = {
+            taskId: id,
+            field: "update",
+            oldValue: null,
+            newValue: updates.note,
+            createdAt: new Date().toISOString(),
+            changedBy: {
+              id: "admin-user", // TODO: Récupérer l'utilisateur authentifié
+              name: "Administrateur",
+              email: "admin@example.com"
+            }
+          }
+
+          // Ajouter à la collection d'historique
+          const historyRef = collection(db, "taskHistory")
+          await addDoc(historyRef, historyEntry)
+
+          console.log(`✅ Entrée d'historique créée`)
+        } catch (historyError) {
+          console.error('⚠️ Erreur lors de l\'ajout à l\'historique:', historyError)
+          // Continuer même si l'historique échoue
+        }
+      }
+
+      // Préparer les données de mise à jour (sans la note)
+      const { note, ...taskUpdates } = updates
+      
+      if (Object.keys(taskUpdates).length > 0) {
+        console.log('📝 Mise à jour des champs:', taskUpdates)
+        await updateDoc(docRef, {
+          ...taskUpdates,
+          updatedAt: new Date().toISOString(), // Utiliser une date simple pour déboguer
+        })
+        console.log(`✅ Tâche mise à jour`)
+      } else {
+        console.log('ℹ️ Aucun champ à mettre à jour (seulement une note)')
+      }
     } catch (error) {
-      console.error('Erreur lors de la mise à jour de la tâche:', error)
+      console.error('❌ Erreur lors de la mise à jour de la tâche:', error)
+      console.error('Stack trace:', error instanceof Error ? error.stack : String(error))
       throw error
     }
   }

@@ -39,9 +39,13 @@ export async function PUT(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    console.log("🔄 API PUT /api/firebase/tasks/[id] appelée")
+    
     const resolvedParams = await params
     const taskId = resolvedParams.id
     const updateData = await request.json()
+
+    console.log(`📝 Données reçues pour la tâche ${taskId}:`, updateData)
 
     if (!taskId) {
       return NextResponse.json(
@@ -51,13 +55,20 @@ export async function PUT(
     }
 
     // Mettre à jour la tâche
-    const updatedTask = await taskService.updateTask(taskId, updateData)
+    console.log("🔥 Appel du service de mise à jour...")
+    await taskService.updateTask(taskId, updateData)
+    console.log("✅ Service de mise à jour terminé")
 
-    return NextResponse.json(updatedTask, { status: 200 })
+    return NextResponse.json({ message: "Tâche mise à jour avec succès" }, { status: 200 })
   } catch (error) {
-    console.error("Erreur lors de la mise à jour de la tâche:", error)
+    console.error("❌ Erreur lors de la mise à jour de la tâche:", error)
+    console.error("Stack trace:", error instanceof Error ? error.stack : String(error))
     return NextResponse.json(
-      { message: "Erreur interne du serveur" },
+      { 
+        message: "Erreur interne du serveur", 
+        error: error instanceof Error ? error.message : String(error),
+        details: error instanceof Error ? error.stack : undefined
+      },
       { status: 500 }
     )
   }
