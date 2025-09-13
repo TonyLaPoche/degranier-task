@@ -2,7 +2,7 @@
 
 import { useAuth } from "@/hooks/useAuth"
 import { useRouter } from "next/navigation"
-import { useEffect, useState } from "react"
+import { useEffect, useState, useCallback } from "react"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
@@ -22,6 +22,15 @@ interface TaskComment {
     email: string
     role: string
   }
+}
+
+interface TaskChecklist {
+  id: string
+  title: string
+  isCompleted: boolean
+  order: number
+  createdAt: Date
+  updatedAt: Date
 }
 
 interface Task {
@@ -47,6 +56,7 @@ interface Task {
     }
   }>
   comments: TaskComment[]
+  checklists?: TaskChecklist[]
 }
 
 export default function ClientDashboard() {
@@ -59,20 +69,18 @@ export default function ClientDashboard() {
   const [sortBy, setSortBy] = useState<string>("recent")
   const [showFilters, setShowFilters] = useState(false)
 
-  useEffect(() => {
-    if (loading) return
-
-    if (!user || user.role !== "CLIENT") {
-      router.push("/auth/signin")
-      return
-    }
-
-    fetchTasks()
-  }, [user, loading, router])
-
-  const fetchTasks = async () => {
+  const fetchTasks = useCallback(async () => {
     try {
-      const response = await fetch("/api/firebase/tasks")
+      // Construire l'URL avec les paramètres utilisateur pour le filtrage client
+      const url = new URL("/api/firebase/tasks", window.location.origin)
+      if (user?.role) {
+        url.searchParams.set('role', user.role)
+      }
+      if (user?.uid) {
+        url.searchParams.set('userId', user.uid)
+      }
+
+      const response = await fetch(url.toString())
       if (response.ok) {
         const data = await response.json()
         setTasks(data)
@@ -82,7 +90,18 @@ export default function ClientDashboard() {
     } finally {
       setIsLoadingTasks(false)
     }
-  }
+  }, [user])
+
+  useEffect(() => {
+    if (loading) return
+
+    if (!user || user.role !== "CLIENT") {
+      router.push("/auth/signin")
+      return
+    }
+
+    fetchTasks()
+  }, [user, loading, router, fetchTasks])
 
   const handleCommentAdded = () => {
     fetchTasks() // Rafraîchir les tâches pour voir le nouveau commentaire

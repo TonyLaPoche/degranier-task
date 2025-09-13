@@ -65,6 +65,36 @@ export interface FirebaseTask {
   updatedAt: Date
   clientIds: string[]
   checklistItems: FirebaseChecklistItem[]
+  checklists?: FirebaseChecklistItem[]  // Support des deux formats
+  history?: FirebaseHistoryItem[]
+  comments?: FirebaseComment[]
+  clients?: FirebaseUser[]  // Informations complètes des clients
+}
+
+export interface FirebaseHistoryItem {
+  id: string
+  field: string
+  oldValue: string | null
+  newValue: string | null
+  createdAt: Date
+  changedBy: {
+    id: string
+    name: string | null
+    email: string
+  }
+}
+
+export interface FirebaseComment {
+  id: string
+  content: string
+  isFromClient: boolean
+  createdAt: Date
+  author: {
+    id: string
+    name: string | null
+    email: string
+    role: string
+  }
 }
 
 export interface FirebaseChecklistItem {
@@ -180,10 +210,13 @@ export class FirebaseTaskService {
       q = query(q, orderBy('createdAt', 'desc')) as any
 
       const snapshot = await getDocs(q)
-      return snapshot.docs.map(doc => {
-        const data = doc.data()
-        return {
-          id: doc.id,
+      const tasks = await Promise.all(snapshot.docs.map(async (docSnapshot) => {
+        const data = docSnapshot.data()
+        const taskId = docSnapshot.id
+
+        // Récupérer les données de base
+        const baseTask = {
+          id: taskId,
           title: data.title,
           description: data.description,
           status: data.status,
@@ -194,8 +227,80 @@ export class FirebaseTaskService {
           clientIds: data.clientIds || [],
           allowComments: data.allowComments || true,
           checklistItems: data.checklistItems || data.checklists || [],
+          checklists: data.checklistItems || data.checklists || [],
         }
-      })
+
+        // Récupérer les informations complètes des clients
+        const clients: FirebaseUser[] = []
+        if (data.clientIds && Array.isArray(data.clientIds)) {
+          for (const clientId of data.clientIds) {
+            try {
+              const clientDoc = await getDoc(doc(db, 'users', clientId))
+              if (clientDoc.exists()) {
+                const clientData = clientDoc.data()
+                clients.push({
+                  id: clientDoc.id,
+                  email: clientData.email,
+                  name: clientData.name,
+                  role: clientData.role,
+                  createdAt: convertFirestoreDate(clientData.createdAt),
+                  updatedAt: convertFirestoreDate(clientData.updatedAt),
+                })
+              }
+            } catch (error) {
+              console.warn(`Erreur lors de la récupération du client ${clientId}:`, error)
+            }
+          }
+        }
+
+        // Récupérer l'historique (si stocké comme sous-collection)
+        const history: FirebaseHistoryItem[] = []
+        try {
+          const historySnapshot = await getDocs(collection(db, this.collectionName, taskId, 'history'))
+          historySnapshot.docs.forEach(historyDoc => {
+            const historyData = historyDoc.data()
+            history.push({
+              id: historyDoc.id,
+              field: historyData.field || 'update',
+              oldValue: historyData.oldValue || null,
+              newValue: historyData.newValue || null,
+              createdAt: convertFirestoreDate(historyData.createdAt),
+              changedBy: historyData.changedBy || { id: 'unknown', name: null, email: 'unknown' }
+            })
+          })
+        } catch (error) {
+          // L'historique peut ne pas exister, ce n'est pas grave
+          console.debug(`Pas d'historique trouvé pour la tâche ${taskId}`)
+        }
+
+        // Récupérer les commentaires (si stockés comme sous-collection)
+        const comments: FirebaseComment[] = []
+        try {
+          const commentsSnapshot = await getDocs(collection(db, this.collectionName, taskId, 'comments'))
+          commentsSnapshot.docs.forEach(commentDoc => {
+            const commentData = commentDoc.data()
+            comments.push({
+              id: commentDoc.id,
+              content: commentData.content,
+              isFromClient: commentData.isFromClient || false,
+              createdAt: convertFirestoreDate(commentData.createdAt),
+              author: commentData.author || { id: 'unknown', name: null, email: 'unknown', role: 'CLIENT' }
+            })
+          })
+        } catch (error) {
+          // Les commentaires peuvent ne pas exister, ce n'est pas grave
+          console.debug(`Pas de commentaires trouvés pour la tâche ${taskId}`)
+        }
+
+        return {
+          ...baseTask,
+          clients,
+          history,
+          comments,
+        }
+      }))
+
+      return tasks
     } catch (error) {
       console.error('Erreur lors de la récupération des tâches:', error)
       throw error
