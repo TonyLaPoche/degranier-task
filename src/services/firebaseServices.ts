@@ -9,8 +9,7 @@ import {
   query,
   where,
   orderBy,
-  Timestamp,
-  serverTimestamp
+  Timestamp
 } from 'firebase/firestore'
 import { db } from '@/lib/firebase'
 // import { adminDb } from '@/lib/firebase-admin' // Unused for now
@@ -378,7 +377,7 @@ export class FirebaseTaskService {
     }
   }
 
-  async updateTask(id: string, updates: Partial<Omit<FirebaseTask, 'id' | 'createdAt'>> & { note?: string; author?: any }): Promise<void> {
+  async updateTask(id: string, updates: Partial<Omit<FirebaseTask, 'id' | 'createdAt'>> & { note?: string; author?: { id: string; name: string; email: string; role?: string } }): Promise<void> {
     try {
       console.log(`🔄 Mise à jour de la tâche ${id}:`, updates)
       
@@ -428,7 +427,7 @@ export class FirebaseTaskService {
       }
 
       // Préparer les données de mise à jour (sans la note et l'auteur)
-      const { note, author, ...taskUpdates } = updates
+      const { note: _note, author: _author, ...taskUpdates } = updates
       
       if (Object.keys(taskUpdates).length > 0) {
         console.log('📝 Mise à jour des champs:', taskUpdates)

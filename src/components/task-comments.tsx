@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useCallback } from "react"
 import { Button } from "@/components/ui/button"
 import { Textarea } from "@/components/ui/textarea"
 import { Card, CardContent } from "@/components/ui/card"
@@ -40,7 +40,7 @@ export default function TaskComments({ taskId, taskStatus, comments: initialComm
   const canComment = taskStatus !== "COMPLETED" && allowComments && user
 
   // Fonction pour récupérer les commentaires
-  const fetchComments = async () => {
+  const fetchComments = useCallback(async () => {
     setIsLoading(true)
     try {
       const response = await fetch(`/api/firebase/tasks/${taskId}/comments`)
@@ -53,7 +53,7 @@ export default function TaskComments({ taskId, taskStatus, comments: initialComm
     } finally {
       setIsLoading(false)
     }
-  }
+  }, [taskId])
 
   // Récupérer les commentaires au montage et quand initialComments change
   useEffect(() => {
@@ -62,7 +62,7 @@ export default function TaskComments({ taskId, taskStatus, comments: initialComm
     } else {
       fetchComments()
     }
-  }, [taskId, initialComments])
+  }, [taskId, initialComments, fetchComments])
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()

@@ -145,9 +145,10 @@ export function useAdminDashboard() {
 
   // Update selected task when tasks or clients data changes
   useEffect(() => {
-    if (selectedTask) {
+    const currentSelectedId = selectedTask?.id
+    if (currentSelectedId) {
       // Find the original task data to transform it again
-      const originalTask = tasks.find(t => t.id === selectedTask.id)
+      const originalTask = tasks.find(t => t.id === currentSelectedId)
       if (originalTask) {
         const newTransformedTask = transformTaskForDetails(originalTask)
         // Vérifier si les données ont changé pour éviter les re-renders inutiles
@@ -157,7 +158,7 @@ export function useAdminDashboard() {
         }
       }
     }
-  }, [selectedTask?.id, tasks, clients, transformTaskForDetails])  
+  }, [selectedTask?.id, tasks, clients, transformTaskForDetails, selectedTask])  
   const [showCreateForm, setShowCreateForm] = useState(false)
 
   // Stats calculées
