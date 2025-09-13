@@ -378,7 +378,7 @@ export class FirebaseTaskService {
     }
   }
 
-  async updateTask(id: string, updates: Partial<Omit<FirebaseTask, 'id' | 'createdAt'>> & { note?: string }): Promise<void> {
+  async updateTask(id: string, updates: Partial<Omit<FirebaseTask, 'id' | 'createdAt'>> & { note?: string; author?: any }): Promise<void> {
     try {
       console.log(`🔄 Mise à jour de la tâche ${id}:`, updates)
       
@@ -395,6 +395,13 @@ export class FirebaseTaskService {
         console.log(`📝 Ajout d'une note à l'historique: ${updates.note}`)
         
         try {
+          // Utiliser l'auteur fourni ou un fallback
+          const author = updates.author || {
+            id: "unknown-user",
+            name: "Utilisateur inconnu", 
+            email: "unknown@example.com"
+          }
+
           // Créer une entrée d'historique
           const historyEntry = {
             taskId: id,
@@ -403,9 +410,9 @@ export class FirebaseTaskService {
             newValue: updates.note,
             createdAt: new Date().toISOString(),
             changedBy: {
-              id: "admin-user", // TODO: Récupérer l'utilisateur authentifié
-              name: "Administrateur",
-              email: "admin@example.com"
+              id: author.id,
+              name: author.name,
+              email: author.email
             }
           }
 
@@ -420,8 +427,8 @@ export class FirebaseTaskService {
         }
       }
 
-      // Préparer les données de mise à jour (sans la note)
-      const { note, ...taskUpdates } = updates
+      // Préparer les données de mise à jour (sans la note et l'auteur)
+      const { note, author, ...taskUpdates } = updates
       
       if (Object.keys(taskUpdates).length > 0) {
         console.log('📝 Mise à jour des champs:', taskUpdates)

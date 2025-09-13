@@ -6,6 +6,7 @@ import { Textarea } from "@/components/ui/textarea"
 import { Card, CardContent } from "@/components/ui/card"
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
 import { Loader2, Send, MessageSquare } from "lucide-react"
+import { useAuth } from "@/hooks/useAuth"
 
 interface TaskComment {
   id: string
@@ -29,13 +30,14 @@ interface TaskCommentsProps {
 }
 
 export default function TaskComments({ taskId, taskStatus, comments: initialComments = [], allowComments = true, onCommentAdded }: TaskCommentsProps) {
+  const { user } = useAuth()
   const [comments, setComments] = useState<TaskComment[]>(initialComments)
   const [newComment, setNewComment] = useState("")
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState("")
 
-  const canComment = taskStatus !== "COMPLETED" && allowComments
+  const canComment = taskStatus !== "COMPLETED" && allowComments && user
 
   // Fonction pour récupérer les commentaires
   const fetchComments = async () => {
@@ -64,7 +66,7 @@ export default function TaskComments({ taskId, taskStatus, comments: initialComm
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    if (!newComment.trim()) return
+    if (!newComment.trim() || !user) return
 
     setIsSubmitting(true)
     setError("")
@@ -77,6 +79,12 @@ export default function TaskComments({ taskId, taskStatus, comments: initialComm
         },
         body: JSON.stringify({
           content: newComment.trim(),
+          author: {
+            id: user.uid,
+            name: user.displayName,
+            email: user.email,
+            role: user.role
+          }
         }),
       })
 

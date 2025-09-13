@@ -46,6 +46,9 @@ export async function PUT(
     const updateData = await request.json()
 
     console.log(`📝 Données reçues pour la tâche ${taskId}:`, updateData)
+    if (updateData.author) {
+      console.log(`👤 Auteur de la modification:`, updateData.author)
+    }
 
     if (!taskId) {
       return NextResponse.json(

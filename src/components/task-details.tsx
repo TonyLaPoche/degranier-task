@@ -271,7 +271,7 @@ export default function TaskDetails({ task, clients = [], onUpdate, onClose }: T
   }
 
   const handleUpdateSubmit = async () => {
-    if (!updateNote.trim()) return
+    if (!updateNote.trim() || !user) return
 
     setIsUpdating(true)
     setError("")
@@ -279,6 +279,12 @@ export default function TaskDetails({ task, clients = [], onUpdate, onClose }: T
     try {
       const updates: Record<string, unknown> = {
         note: updateNote.trim(),
+        author: {
+          id: user.uid,
+          name: user.displayName,
+          email: user.email,
+          role: user.role
+        }
       }
 
       // Ajouter les modifications si elles sont différentes

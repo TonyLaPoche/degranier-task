@@ -80,9 +80,10 @@ export async function POST(
   try {
     const resolvedParams = await params
     const taskId = resolvedParams.id
-    const { content } = await request.json()
+    const { content, author } = await request.json()
 
     console.log(`💬 POST comment pour la tâche ${taskId}:`, content)
+    console.log(`👤 Auteur:`, author)
 
     if (!content || typeof content !== "string" || content.trim().length === 0) {
       return NextResponse.json(
@@ -102,27 +103,26 @@ export async function POST(
       )
     }
 
-    // Pour l'instant, utiliser un utilisateur par défaut
-    // TODO: Récupérer l'utilisateur authentifié
-    const defaultAuthor = {
-      id: "admin-user",
-      name: "Administrateur",
-      email: "admin@example.com",
-      role: "ADMIN"
+    // Utiliser l'auteur fourni ou un fallback
+    const commentAuthor = author || {
+      id: "unknown-user",
+      name: "Utilisateur inconnu",
+      email: "unknown@example.com",
+      role: "CLIENT"
     }
 
     // Créer le commentaire
     const newComment = {
       taskId,
       content: content.trim(),
-      isFromClient: false, // Par défaut admin
+      isFromClient: commentAuthor.role === 'CLIENT',
       createdAt: new Date().toISOString(),
-      author: defaultAuthor,
+      author: commentAuthor,
       // Champs de compatibilité
-      authorId: defaultAuthor.id,
-      authorName: defaultAuthor.name,
-      authorEmail: defaultAuthor.email,
-      authorRole: defaultAuthor.role
+      authorId: commentAuthor.id,
+      authorName: commentAuthor.name,
+      authorEmail: commentAuthor.email,
+      authorRole: commentAuthor.role
     }
 
     const commentsRef = collection(db, "taskComments")
