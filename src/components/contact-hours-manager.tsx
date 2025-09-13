@@ -601,7 +601,7 @@ export default function ContactHoursManager() {
                           <p className="text-sm text-muted-foreground">{vacation.description}</p>
                         )}
                         <div className="text-xs text-muted-foreground">
-                          Créé le {new Date(vacation.createdAt).toLocaleDateString('fr-FR')}
+                          Créé le {vacation.createdAt ? new Date(vacation.createdAt).toLocaleDateString('fr-FR') : 'Date inconnue'}
                         </div>
                       </div>
                     </CardContent>

@@ -12,18 +12,18 @@ import {
   Timestamp,
 } from 'firebase/firestore'
 import { db } from '@/lib/firebase'
-import { adminDb } from '@/lib/firebase-admin'
+// import { adminDb } from '@/lib/firebase-admin' // Unused for now
 
 // Fonction utilitaire pour convertir les dates Firestore en objets Date
-function convertFirestoreDate(value: any): Date {
+function convertFirestoreDate(value: unknown): Date {
   if (!value) return new Date()
 
   // Si c'est déjà un objet Date
   if (value instanceof Date) return value
 
   // Si c'est un Firestore Timestamp
-  if (value && typeof value.toDate === 'function') {
-    return value.toDate()
+  if (value && typeof value === 'object' && 'toDate' in value && typeof (value as { toDate: () => Date }).toDate === 'function') {
+    return (value as { toDate: () => Date }).toDate()
   }
 
   // Si c'est une chaîne ISO

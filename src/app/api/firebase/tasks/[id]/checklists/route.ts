@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server"
-import { collection, getDocs, addDoc, query, where, orderBy } from "firebase/firestore"
+import { collection, getDocs, addDoc, query, where } from "firebase/firestore"
 import { db } from "@/lib/firebase"
 
 interface ChecklistItem {

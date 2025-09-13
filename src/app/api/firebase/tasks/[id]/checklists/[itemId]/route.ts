@@ -26,7 +26,7 @@ export async function PUT(
     const checklistItems = taskData.checklistItems || []
 
     // Trouver l'item à mettre à jour
-    const itemIndex = checklistItems.findIndex((item: any) => item.id === itemId)
+    const itemIndex = checklistItems.findIndex((item: { id: string }) => item.id === itemId)
     
     if (itemIndex === -1) {
       return NextResponse.json({ message: "Checklist item non trouvé" }, { status: 404 })

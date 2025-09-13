@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react"
+import { useState, useEffect, useCallback } from "react"
 import { useAuth } from "@/hooks/useAuth"
 import { useRouter } from "next/navigation"
 
@@ -91,7 +91,7 @@ export function useAdminDashboard() {
   const [selectedTask, setSelectedTask] = useState<TransformedTask | null>(null)
 
   // Helper function to transform task for TaskDetails component
-  const transformTaskForDetails = (task: Task): TransformedTask => {
+  const transformTaskForDetails = useCallback((task: Task): TransformedTask => {
     const taskClients = task.clientIds?.map(clientId => {
       const client = clients.find(c => c.id === clientId)
       return client ? { user: { id: client.id, name: client.name || null, email: client.email } } : null
@@ -123,16 +123,16 @@ export function useAdminDashboard() {
         order: checklist.order,
         createdAt: checklist.createdAt instanceof Date ? checklist.createdAt : 
                   (typeof checklist.createdAt === 'string' ? new Date(checklist.createdAt) : 
-                  (checklist.createdAt && typeof checklist.createdAt === 'object' && (checklist.createdAt as any).seconds ? 
-                   new Date((checklist.createdAt as any).seconds * 1000) : new Date())),
+                  (checklist.createdAt && typeof checklist.createdAt === 'object' && (checklist.createdAt as { seconds: number }).seconds ? 
+                   new Date((checklist.createdAt as { seconds: number }).seconds * 1000) : new Date())),
         updatedAt: checklist.updatedAt instanceof Date ? checklist.updatedAt : 
                   (typeof checklist.updatedAt === 'string' ? new Date(checklist.updatedAt) : 
-                  (checklist.updatedAt && typeof checklist.updatedAt === 'object' && (checklist.updatedAt as any).seconds ? 
-                   new Date((checklist.updatedAt as any).seconds * 1000) : new Date()))
+                  (checklist.updatedAt && typeof checklist.updatedAt === 'object' && (checklist.updatedAt as { seconds: number }).seconds ? 
+                   new Date((checklist.updatedAt as { seconds: number }).seconds * 1000) : new Date()))
       })) : [],
       allowComments: true // Default to true for now
     }
-  }
+  }, [clients])
 
   // Custom setter that transforms the task
   const setSelectedTaskTransformed = (task: Task | null) => {
@@ -152,7 +152,7 @@ export function useAdminDashboard() {
         setSelectedTask(transformTaskForDetails(originalTask))
       }
     }
-  })  
+  }, [selectedTask, clients.length, tasks, transformTaskForDetails])  
   const [showCreateForm, setShowCreateForm] = useState(false)
 
   // Stats calculées
@@ -168,7 +168,7 @@ export function useAdminDashboard() {
   })
 
   // Fonctions de récupération des données
-  const fetchTasks = async () => {
+  const fetchTasks = useCallback(async () => {
     try {
       // Construire l'URL avec les paramètres utilisateur pour le filtrage
       const url = new URL("/api/firebase/tasks", window.location.origin)
@@ -190,9 +190,9 @@ export function useAdminDashboard() {
     } finally {
       setIsLoadingTasks(false)
     }
-  }
+  }, [user])
 
-  const fetchClients = async () => {
+  const fetchClients = useCallback(async () => {
     try {
       const response = await fetch("/api/firebase/users")
       if (response.ok) {
@@ -206,7 +206,7 @@ export function useAdminDashboard() {
     } finally {
       setIsLoadingClients(false)
     }
-  }
+  }, [])
 
   // Fonction pour calculer les statistiques
   const calculateStats = (tasksData: Task[], clientsData: Client[]) => {
@@ -349,7 +349,7 @@ export function useAdminDashboard() {
 
     fetchTasks()
     fetchClients()
-  }, [user, authLoading, router])
+  }, [user, authLoading, router, fetchTasks, fetchClients])
 
   // Effet pour calculer les stats quand les données changent
   useEffect(() => {
