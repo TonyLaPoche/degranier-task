@@ -5,11 +5,12 @@ import { useRouter } from "next/navigation"
 interface ChecklistItem {
   id: string
   title: string
-  isCompleted: boolean
+  isCompleted?: boolean
+  completed?: boolean  // Support des deux formats
   order: number
-  taskId: string
-  createdAt: string
-  updatedAt: string
+  taskId?: string
+  createdAt: string | Date
+  updatedAt: string | Date
 }
 
 interface HistoryItem {
@@ -34,6 +35,7 @@ interface Task {
   updatedAt: string
   clientIds: string[]
   checklists?: ChecklistItem[]
+  checklistItems?: ChecklistItem[]  // Ajouter support pour checklistItems aussi
   history?: HistoryItem[]
 }
 
@@ -114,13 +116,13 @@ export function useAdminDashboard() {
         changedBy: (entry as any).changedBy || { id: entry.userId, name: null, email: 'unknown@example.com' } // eslint-disable-line @typescript-eslint/no-explicit-any
       })) : [],
       comments: [], // Add empty comments array for now
-      checklists: task.checklists ? task.checklists.map(checklist => ({
+      checklists: (task.checklists || task.checklistItems) ? (task.checklists || task.checklistItems || []).map(checklist => ({
         id: checklist.id,
         title: checklist.title,
-        isCompleted: checklist.isCompleted,
+        isCompleted: checklist.isCompleted || checklist.completed || false,  // Support des deux formats
         order: checklist.order,
-        createdAt: new Date(checklist.createdAt),
-        updatedAt: new Date(checklist.updatedAt)
+        createdAt: typeof checklist.createdAt === 'string' ? new Date(checklist.createdAt) : checklist.createdAt,
+        updatedAt: typeof checklist.updatedAt === 'string' ? new Date(checklist.updatedAt) : checklist.updatedAt
       })) : [],
       allowComments: true // Default to true for now
     }

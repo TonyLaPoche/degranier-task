@@ -25,16 +25,38 @@ export async function GET(request: NextRequest) {
 
 export async function POST(request: NextRequest) {
   try {
-    // TODO: Ajouter l'authentification Firebase
-    const { title, description, status, priority, dueDate, clientIds, allowComments, checklistItems } = await request.json()
+    console.log("🔥 API POST /api/firebase/tasks appelée")
+
+    // Pour le développement : accepter toutes les requêtes authentifiées
+    // TODO: Ajouter une vérification d'authentification complète en production
+    const body = await request.json()
+    console.log("📝 Payload reçu:", JSON.stringify(body, null, 2))
+
+    // Accepter à la fois "checklists" et "checklistItems" pour la compatibilité
+    const { title, description, status, priority, dueDate, clientIds, allowComments, checklistItems, checklists } = body
 
     // Validation
     if (!title || !clientIds || !Array.isArray(clientIds) || clientIds.length === 0) {
+      console.log("❌ Validation échouée:", { title, clientIds })
       return NextResponse.json(
         { message: "Le titre et au moins un client sont requis" },
         { status: 400 }
       )
     }
+
+    console.log("✅ Validation passée, création de la tâche...")
+
+    // Convertir les checklists en checklistItems si nécessaire
+    const processedChecklistItems = checklistItems || (checklists ? checklists.map((item: string, index: number) => ({
+      id: `item-${index}`,
+      title: item,
+      completed: false,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+      order: index
+    })) : [])
+
+    console.log("📝 ChecklistItems traités:", processedChecklistItems)
 
     // Créer la tâche dans Firebase
     const newTask = await taskService.createTask({
@@ -45,14 +67,16 @@ export async function POST(request: NextRequest) {
       dueDate: dueDate ? new Date(dueDate) : null,
       allowComments: allowComments || false,
       clientIds,
-      checklistItems: checklistItems || [],
+      checklistItems: processedChecklistItems,
     })
 
+    console.log("✅ Tâche créée avec succès:", newTask.id)
     return NextResponse.json(newTask, { status: 201 })
   } catch (error) {
-    console.error("Erreur lors de la création de la tâche Firebase:", error)
+    console.error("❌ Erreur lors de la création de la tâche Firebase:", error)
+    console.error("Stack trace:", error instanceof Error ? error.stack : String(error))
     return NextResponse.json(
-      { message: "Erreur interne du serveur" },
+      { message: "Erreur interne du serveur", error: error instanceof Error ? error.message : String(error) },
       { status: 500 }
     )
   }

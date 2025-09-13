@@ -14,6 +14,7 @@ import { Loader2, Calendar, User, History, Edit, Save, X, RefreshCw, CheckSquare
 import { formatDateForInput, formatDateForDisplay, formatDateTimeForDisplay } from "@/lib/date-utils"
 import TaskComments from "@/components/task-comments"
 import { getAllowComments } from "@/lib/utils"
+import { useAuth } from "@/hooks/useAuth"
 
 interface User {
   id: string
@@ -80,6 +81,9 @@ interface TaskDetailsProps {
 }
 
 export default function TaskDetails({ task, clients = [], onUpdate, onClose }: TaskDetailsProps) {
+  const { user } = useAuth()
+  const isAdmin = user?.role === 'ADMIN'
+  
   const [isEditing, setIsEditing] = useState(false)
   const [isSaving, setIsSaving] = useState(false)
   const [error, setError] = useState("")
@@ -576,7 +580,7 @@ export default function TaskDetails({ task, clients = [], onUpdate, onClose }: T
               <CheckSquare className="h-5 w-5" />
               Liste de tâches
             </h3>
-            {!isAddingChecklist && (
+            {!isAddingChecklist && isAdmin && (
               <Button
                 onClick={() => setIsAddingChecklist(true)}
                 variant="outline"
@@ -590,7 +594,7 @@ export default function TaskDetails({ task, clients = [], onUpdate, onClose }: T
           </div>
 
           <div className="space-y-3">
-            {isAddingChecklist && (
+            {isAddingChecklist && isAdmin && (
               <div className="flex gap-2 p-3 border rounded-lg bg-muted/30">
                 <Input
                   placeholder="Nouvelle tâche..."
@@ -639,6 +643,7 @@ export default function TaskDetails({ task, clients = [], onUpdate, onClose }: T
                         checked={item.isCompleted}
                         onCheckedChange={() => handleToggleChecklistItem(item.id, item.isCompleted)}
                         className="mt-0.5"
+                        disabled={!isAdmin}
                       />
                       <span
                         className={`flex-1 text-sm ${
@@ -649,14 +654,16 @@ export default function TaskDetails({ task, clients = [], onUpdate, onClose }: T
                       >
                         {item.title}
                       </span>
-                      <Button
-                        onClick={() => handleDeleteChecklistItem(item.id)}
-                        variant="ghost"
-                        size="sm"
-                        className="h-8 w-8 p-0 text-muted-foreground hover:text-destructive"
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </Button>
+                      {isAdmin && (
+                        <Button
+                          onClick={() => handleDeleteChecklistItem(item.id)}
+                          variant="ghost"
+                          size="sm"
+                          className="h-8 w-8 p-0 text-muted-foreground hover:text-destructive"
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      )}
                     </div>
                   ))}
               </div>

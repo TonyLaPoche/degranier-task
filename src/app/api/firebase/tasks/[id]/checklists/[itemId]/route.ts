@@ -9,63 +9,48 @@ export async function PUT(
   try {
     const resolvedParams = await params
     const { id: taskId, itemId } = resolvedParams
-    const { title, isCompleted, order } = await request.json()
+    const { isCompleted } = await request.json()
 
-    const checklistRef = doc(db, "taskChecklists", itemId)
-    const checklistSnap = await getDoc(checklistRef)
+    console.log(`🔥 Toggle checklist ${itemId} pour la tâche ${taskId}, isCompleted: ${isCompleted}`)
 
-    if (!checklistSnap.exists()) {
-      return NextResponse.json({ message: "Checklist non trouvée" }, { status: 404 })
+    // Pour les checklists stockées dans la tâche (nouveau format)
+    // On va mettre à jour directement dans le document de la tâche
+    const taskRef = doc(db, "tasks", taskId)
+    const taskSnap = await getDoc(taskRef)
+
+    if (!taskSnap.exists()) {
+      return NextResponse.json({ message: "Tâche non trouvée" }, { status: 404 })
     }
 
-    const checklistData = checklistSnap.data()
+    const taskData = taskSnap.data()
+    const checklistItems = taskData.checklistItems || []
 
-    // Vérifier que la checklist appartient bien à la tâche
-    if (checklistData.taskId !== taskId) {
-      return NextResponse.json({ message: "Checklist non trouvée pour cette tâche" }, { status: 404 })
+    // Trouver l'item à mettre à jour
+    const itemIndex = checklistItems.findIndex((item: any) => item.id === itemId)
+    
+    if (itemIndex === -1) {
+      return NextResponse.json({ message: "Checklist item non trouvé" }, { status: 404 })
     }
 
-    // Préparer les données de mise à jour
-    const updateData: Record<string, unknown> = {
-      updatedAt: new Date().toISOString(),
+    // Mettre à jour l'item
+    checklistItems[itemIndex] = {
+      ...checklistItems[itemIndex],
+      completed: Boolean(isCompleted),
+      updatedAt: new Date()
     }
 
-    if (title !== undefined) {
-      if (!title || typeof title !== "string" || title.trim().length === 0) {
-        return NextResponse.json(
-          { message: "Le titre est requis" },
-          { status: 400 }
-        )
-      }
-      updateData.title = title.trim()
-    }
+    // Sauvegarder la tâche mise à jour
+    await updateDoc(taskRef, {
+      checklistItems: checklistItems,
+      updatedAt: new Date()
+    })
 
-    if (isCompleted !== undefined) {
-      updateData.isCompleted = Boolean(isCompleted)
-    }
+    console.log(`✅ Checklist ${itemId} mise à jour avec succès`)
 
-    if (order !== undefined && typeof order === "number") {
-      updateData.order = order
-    }
-
-    // Mettre à jour la checklist
-    await updateDoc(checklistRef, updateData)
-
-    // Récupérer la checklist mise à jour
-    const updatedChecklistSnap = await getDoc(checklistRef)
-    const updatedData = updatedChecklistSnap.data()
-
-    const updatedChecklist = {
+    return NextResponse.json({
       id: itemId,
-      taskId: updatedData!.taskId,
-      title: updatedData!.title,
-      isCompleted: updatedData!.isCompleted ?? false,
-      order: updatedData!.order ?? 0,
-      createdAt: updatedData!.createdAt,
-      updatedAt: updatedData!.updatedAt,
-    }
-
-    return NextResponse.json(updatedChecklist)
+      ...checklistItems[itemIndex]
+    })
   } catch (error) {
     console.error("Erreur lors de la mise à jour de la checklist:", error)
     return NextResponse.json(

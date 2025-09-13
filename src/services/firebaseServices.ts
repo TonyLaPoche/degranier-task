@@ -12,6 +12,36 @@ import {
   Timestamp,
 } from 'firebase/firestore'
 import { db } from '@/lib/firebase'
+import { adminDb } from '@/lib/firebase-admin'
+
+// Fonction utilitaire pour convertir les dates Firestore en objets Date
+function convertFirestoreDate(value: any): Date {
+  if (!value) return new Date()
+
+  // Si c'est déjà un objet Date
+  if (value instanceof Date) return value
+
+  // Si c'est un Firestore Timestamp
+  if (value && typeof value.toDate === 'function') {
+    return value.toDate()
+  }
+
+  // Si c'est une chaîne ISO
+  if (typeof value === 'string') {
+    const date = new Date(value)
+    if (!isNaN(date.getTime())) {
+      return date
+    }
+  }
+
+  // Si c'est un nombre (timestamp Unix)
+  if (typeof value === 'number') {
+    return new Date(value)
+  }
+
+  // Par défaut, retourner la date actuelle
+  return new Date()
+}
 
 // Types pour Firestore
 export interface FirebaseUser {
@@ -69,8 +99,8 @@ export class FirebaseUserService {
           email: data.email,
           name: data.name,
           role: data.role,
-          createdAt: data.createdAt?.toDate() || new Date(),
-          updatedAt: data.updatedAt?.toDate() || new Date(),
+          createdAt: convertFirestoreDate(data.createdAt),
+          updatedAt: convertFirestoreDate(data.updatedAt),
         } as FirebaseUser
       })
     } catch (error) {
@@ -88,8 +118,8 @@ export class FirebaseUserService {
         return {
           id: docSnap.id,
           ...docSnap.data(),
-          createdAt: docSnap.data().createdAt?.toDate() || new Date(),
-          updatedAt: docSnap.data().updatedAt?.toDate() || new Date(),
+          createdAt: convertFirestoreDate(docSnap.data().createdAt),
+          updatedAt: convertFirestoreDate(docSnap.data().updatedAt),
         } as FirebaseUser
       }
       return null
@@ -158,12 +188,12 @@ export class FirebaseTaskService {
           description: data.description,
           status: data.status,
           priority: data.priority,
-          createdAt: data.createdAt?.toDate() || new Date(),
-          updatedAt: data.updatedAt?.toDate() || new Date(),
-          dueDate: data.dueDate?.toDate() || null,
+          createdAt: convertFirestoreDate(data.createdAt),
+          updatedAt: convertFirestoreDate(data.updatedAt),
+          dueDate: data.dueDate ? convertFirestoreDate(data.dueDate) : null,
           clientIds: data.clientIds || [],
           allowComments: data.allowComments || true,
-          checklistItems: data.checklists || [],
+          checklistItems: data.checklistItems || data.checklists || [],
         }
       })
     } catch (error) {
@@ -182,9 +212,9 @@ export class FirebaseTaskService {
         return {
           id: docSnap.id,
           ...data,
-          createdAt: data.createdAt?.toDate() || new Date(),
-          updatedAt: data.updatedAt?.toDate() || new Date(),
-          dueDate: data.dueDate?.toDate() || null,
+          createdAt: convertFirestoreDate(data.createdAt),
+          updatedAt: convertFirestoreDate(data.updatedAt),
+          dueDate: data.dueDate ? convertFirestoreDate(data.dueDate) : null,
           checklistItems: data.checklistItems || [],
         } as FirebaseTask
       }
@@ -197,12 +227,18 @@ export class FirebaseTaskService {
 
   async createTask(taskData: Omit<FirebaseTask, 'id' | 'createdAt' | 'updatedAt'>): Promise<FirebaseTask> {
     try {
+      console.log('🔥 FirebaseTaskService.createTask() - Création de tâche avec SDK client')
+      
+      // Pour le moment, utiliser le SDK client normal
+      // TODO: Configurer Firebase Admin SDK avec les bonnes credentials
       const docRef = await addDoc(collection(db, this.collectionName), {
         ...taskData,
         createdAt: Timestamp.now(),
         updatedAt: Timestamp.now(),
         checklistItems: taskData.checklistItems || [],
       })
+
+      console.log('✅ Tâche créée avec SDK client, ID:', docRef.id)
 
       return {
         id: docRef.id,

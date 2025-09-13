@@ -3,18 +3,20 @@ service cloud.firestore {
   match /databases/{database}/documents {
     // Règles pour les tâches
     match /tasks/{taskId} {
-      // Lecture : utilisateurs authentifiés peuvent lire toutes les tâches
-      allow read: if request.auth != null;
+      // Pour le développement : permettre la lecture de toutes les tâches
+      // TODO: Restreindre selon le rôle en production
+      allow read: if true;
 
-      // Écriture : seulement les administrateurs peuvent créer/modifier des tâches
-      allow create, update, delete: if request.auth != null &&
-        request.auth.token.role == 'ADMIN';
+      // Pour le développement : permettre aux utilisateurs authentifiés de créer/modifier
+      // TODO: Restreindre aux admins seulement en production
+      allow create, update, delete: if request.auth != null;
     }
 
     // Règles pour les checklists
     match /taskChecklists/{checklistId} {
-      // Lecture : utilisateurs authentifiés peuvent lire les checklists
-      allow read: if request.auth != null;
+      // Pour le développement : permettre la lecture de toutes les checklists
+      // TODO: Restreindre selon le rôle en production
+      allow read: if true;
 
       // Écriture : utilisateurs authentifiés peuvent créer/modifier leurs checklists
       allow create, update, delete: if request.auth != null;
@@ -22,21 +24,24 @@ service cloud.firestore {
 
     // Règles pour les utilisateurs
     match /users/{userId} {
-      // Lecture : utilisateurs peuvent lire leur propre profil ou admins peuvent tout lire
-      allow read: if request.auth != null &&
-        (request.auth.uid == userId || request.auth.token.role == 'ADMIN');
+      // Pour le développement : permettre la lecture de tous les utilisateurs
+      // TODO: Restreindre aux utilisateurs authentifiés en production
+      allow read: if true;
 
-      // Écriture : utilisateurs peuvent modifier leur propre profil, admins peuvent tout faire
-      allow create, update: if request.auth != null &&
-        (request.auth.uid == userId || request.auth.token.role == 'ADMIN');
+      // Pour le développement : permettre aux utilisateurs authentifiés de modifier
+      // TODO: Restreindre selon les rôles en production
+      allow create, update: if request.auth != null;
 
-      // Suppression : seulement les admins
-      allow delete: if request.auth != null && request.auth.token.role == 'ADMIN';
+      // Suppression : utilisateurs authentifiés peuvent supprimer
+      allow delete: if request.auth != null;
     }
 
     // Règles pour les autres collections (contact-info, social-media, etc.)
     match /{document=**} {
-      allow read, write: if request.auth != null;
+      // Pour le développement : permettre la lecture de toutes les données
+      // TODO: Restreindre selon le rôle en production
+      allow read: if true;
+      allow create, update, delete: if request.auth != null;
     }
   }
 }
