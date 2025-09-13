@@ -143,16 +143,21 @@ export function useAdminDashboard() {
     }
   }
 
-  // Update selected task when clients data changes
+  // Update selected task when tasks or clients data changes
   useEffect(() => {
-    if (selectedTask && clients.length > 0) {
+    if (selectedTask) {
       // Find the original task data to transform it again
       const originalTask = tasks.find(t => t.id === selectedTask.id)
-      if (originalTask && JSON.stringify(selectedTask.clients) !== JSON.stringify(transformTaskForDetails(originalTask).clients)) {
-        setSelectedTask(transformTaskForDetails(originalTask))
+      if (originalTask) {
+        const newTransformedTask = transformTaskForDetails(originalTask)
+        // Vérifier si les données ont changé pour éviter les re-renders inutiles
+        if (JSON.stringify(selectedTask) !== JSON.stringify(newTransformedTask)) {
+          console.log('🔄 Mise à jour de la tâche sélectionnée après refresh des données')
+          setSelectedTask(newTransformedTask)
+        }
       }
     }
-  }, [selectedTask, clients.length, tasks, transformTaskForDetails])  
+  }, [selectedTask?.id, tasks, clients, transformTaskForDetails])  
   const [showCreateForm, setShowCreateForm] = useState(false)
 
   // Stats calculées
