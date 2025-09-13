@@ -167,8 +167,8 @@ export function useAdminDashboard() {
       if (user?.role) {
         url.searchParams.set('role', user.role)
       }
-      if (user?.id) {
-        url.searchParams.set('userId', user.id)
+      if (user?.uid) {
+        url.searchParams.set('userId', user.uid)
       }
 
       const response = await fetch(url.toString())
